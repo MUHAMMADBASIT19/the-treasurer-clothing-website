@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Treasurer | Wear Your Story</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #030304;
+            --card-bg: #0b0b0f;
+            --card-hover: #121218;
+            --gold: #d4af37;
+            --gold-light: #f3e5ab;
+            --text-main: #ffffff;
+            --text-muted: #9a9a9f;
+            --border-color: rgba(212, 175, 55, 0.15);
+            --transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: rgba(13, 13, 17, 0.95);
+            border: 1px solid var(--gold);
+            color: var(--text-main);
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast i { color: var(--gold); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
+
+        .announcement-bar {
+            background: linear-gradient(90deg, #d4af37, #f3e5ab, #d4af37);
+            color: #030304;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            padding: 6px 0;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            z-index: 1001;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 6%;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(3, 3, 4, 0.85);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo-brand { text-decoration: none; color: inherit; }
+        .brand-name { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 3px; color: var(--text-main); display: block; }
+        .brand-slogan { font-size: 0.65rem; letter-spacing: 4px; color: var(--gold); display: block; margin-top: 3px; }
+        
+        .nav-actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .nav-btn { background: transparent; color: var(--text-main); border: 1px solid rgba(255,255,255,0.15); padding: 0.5rem 1.2rem; border-radius: 2px; cursor: pointer; font-size: 0.8rem; letter-spacing: 1px; transition: var(--transition); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .nav-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(212, 175, 55, 0.05); }
+        
+        .cart-icon-btn { position: relative; background: var(--gold); color: var(--bg-color); border: none; padding: 0.55rem 1.2rem; border-radius: 2px; cursor: pointer; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px; transition: var(--transition); }
+        .cart-icon-btn:hover { background: var(--gold-light); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
+        .cart-count { position: absolute; top: -8px; right: -8px; background: #ff4d4d; color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 50%; font-weight: 700; }
+
+        .category-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2.5rem;
+            background: rgba(8, 8, 12, 0.95);
+            padding: 0.9rem 6%;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 73px;
+            z-index: 999;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .category-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            font-weight: 500;
+            text-transform: uppercase;
+            transition: var(--transition);
+            padding-bottom: 4px;
+            border-bottom: 2px solid transparent;
+        }
+        .category-link:hover, .category-link.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+        }
+
+        .hero-section { text-align: center; padding: 5rem 6% 3rem 6%; max-width: 950px; margin: 0 auto; }
+        .hero-quote { font-family: 'Cinzel', serif; font-size: 2.3rem; line-height: 1.4; color: var(--text-main); margin-bottom: 1.5rem; letter-spacing: 1.5px; }
+        .hero-quote span { color: var(--gold); text-shadow: 0 0 30px rgba(212, 175, 55, 0.3); }
+        .hero-sub { color: var(--text-muted); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; }
+
+        .countdown-banner {
+            background: linear-gradient(135deg, #0d0d11 0%, #161622 100%);
+            border: 1px solid var(--gold);
+            border-radius: 4px;
+            padding: 2.5rem 2rem;
+            max-width: 900px;
+            margin: 2rem auto 4rem auto;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(212, 175, 55, 0.1);
+        }
+        .countdown-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            color: var(--gold);
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+        }
+        .countdown-timers {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .time-box {
+            background: rgba(3, 3, 4, 0.8);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            border-radius: 2px;
+            min-width: 80px;
+        }
+        .time-value {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: block;
+        }
+        .time-label {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .founders-section { background: var(--card-bg); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 4.5rem 6%; margin: 3rem 0; text-align: center; }
+        .founders-container { max-width: 800px; margin: 0 auto; }
+        .founders-title { font-family: 'Cinzel', serif; font-size: 1.5rem; letter-spacing: 3px; color: var(--gold); margin-bottom: 1.5rem; }
+        .founders-text { color: var(--text-muted); font-size: 1.05rem; line-height: 1.9; margin-bottom: 2rem; font-style: italic; }
+        .founders-sign { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--text-main); letter-spacing: 2px; font-weight: 600; }
+
+        .catalog-container { padding: 3rem 6%; max-width: 1400px; margin: 0 auto; }
+        .filter-search-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; flex-wrap: wrap; gap: 1.5rem; }
+        .search-box { position: relative; width: 100%; max-width: 400px; }
+        .search-box input { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.8rem 1rem 0.8rem 2.8rem; border-radius: 2px; font-size: 0.9rem; transition: var(--transition); box-sizing: border-box; }
+        .search-box input:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 15px rgba(212, 175, 55, 0.15); }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+
+        .category-section { margin-bottom: 5rem; scroll-margin-top: 140px; }
+        .catalog-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2.5rem; }
+        .catalog-header h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; letter-spacing: 3px; color: var(--gold); margin: 0 0 0.3rem 0; }
+        .catalog-header p { color: var(--text-muted); font-size: 0.85rem; letter-spacing: 1px; margin: 0; }
+        
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2.5rem; }
+        .product-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; transition: var(--transition); position: relative; }
+        .product-card:hover { transform: translateY(-8px); border-color: var(--gold); background: var(--card-hover); box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+        
+        .product-img-box { width: 100%; height: 320px; background: #07070a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer; border-bottom: 1px solid var(--border-color); }
+        .product-img-box img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease; }
+        .zoom-hint { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: var(--gold); font-size: 0.7rem; padding: 4px 8px; border-radius: 2px; letter-spacing: 1px; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; }
+        .product-img-box:hover .zoom-hint { opacity: 1; }
+
+        .gallery-thumbnails { display: flex; gap: 6px; padding: 10px 1.5rem 0 1.5rem; overflow-x: auto; }
+        .thumb-img { width: 45px; height: 45px; border: 1px solid var(--border-color); border-radius: 2px; object-fit: cover; cursor: pointer; transition: var(--transition); }
+        .thumb-img:hover, .thumb-img.active { border-color: var(--gold); transform: scale(1.05); }
+
+        .product-info { padding: 1.5rem 1.8rem 1.8rem 1.8rem; }
+        .product-title { font-family: 'Cinzel', serif; font-size: 1.15rem; color: var(--text-main); margin-bottom: 0.4rem; letter-spacing: 1px; }
+        .product-desc { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; white-space: pre-line; }
+        
+        .product-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.2rem; }
+        .product-price { font-family: 'Cinzel', serif; font-size: 1.25rem; font-weight: 700; color: var(--gold); }
+        
+        .secure-btn { background: var(--gold); color: var(--bg-color); border: none; padding: 0.65rem 1.4rem; font-weight: 600; border-radius: 2px; cursor: pointer; letter-spacing: 1px; font-size: 0.8rem; transition: var(--transition); }
+        .secure-btn:hover { background: var(--gold-light); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); transform: translateY(-2px); }
+
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(3, 3, 4, 0.9); backdrop-filter: blur(10px); justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--gold); padding: 2.5rem; border-radius: 4px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.8rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+        .modal-header h3 { font-family: 'Cinzel', serif; margin:0; color: var(--gold); letter-spacing: 2px; font-size: 1.3rem; }
+        .close-btn { color: var(--text-muted); cursor: pointer; font-size: 1.5rem; transition: var(--transition); }
+        .close-btn:hover { color: var(--gold); }
+
+        #imageZoomModal .modal-content { max-width: 900px; background: #000; padding: 1.5rem; text-align: center; border-color: var(--gold); }
+        .zoom-lens-container { position: relative; width: 100%; height: 500px; overflow: hidden; display: flex; justify-content: center; align-items: center; cursor: crosshair; background: #050508; border: 1px solid var(--border-color); }
+        .zoom-lens-container img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.1s ease-out; transform-origin: center center; }
+
+        .input-group { margin-bottom: 1.2rem; text-align: left; }
+        .input-group label { display: block; font-size: 0.75rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .input-group input, .input-group textarea { width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.8rem 1rem; border-radius: 2px; box-sizing: border-box; transition: var(--transition); }
+        .input-group input:focus, .input-group textarea:focus { border-color: var(--gold); outline: none; }
+
+        .footer { background: var(--card-bg); border-top: 1px solid var(--border-color); padding: 5rem 6% 2.5rem 6%; margin-top: 6rem; text-align: center; }
+        .footer-content { max-width: 600px; margin: 0 auto; }
+        .footer h3 { font-family: 'Cinzel', serif; letter-spacing: 3px; color: var(--text-main); margin-bottom: 1rem; }
+        .footer p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.7; margin-bottom: 2rem; letter-spacing: 1px; }
+        .footer-bottom { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem; font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1.5px; }
+    </style>
+</head>
+<body>
+
+    <div class="announcement-bar">
+        <div class="marquee-content">
+            FREE SHIPPING ACROSS PAKISTAN ON ORDERS ABOVE RS. 5,000 • LIMITED STOCKS ONLY!
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <header class="navbar">
+        <div class="logo-area">
+            <a href="index.html" class="logo-brand">
+                <span class="brand-name">THE TREASURER</span>
+                <span class="brand-slogan">WEAR YOUR STORY</span>
+            </a>
+        </div>
+        <div class="nav-actions" id="nav-actions-container"></div>
+    </header>
+
+    <nav class="category-bar">
+        <a href="#tshirts" class="category-link"><i class="fas fa-tshirt"></i> T-Shirts</a>
+        <a href="#pants" class="category-link"><i class="fas fa-user-ninja"></i> Pants</a>
+        <a href="#jeans" class="category-link"><i class="fas fa-socks"></i> Jeans</a>
+        <a href="#oversized" class="category-link"><i class="fas fa-vest"></i> Oversized</a>
+        <a href="#all-drops" class="category-link"><i class="fas fa-layer-group"></i> All Active Drops</a>
+    </nav>
+
+    <section class="hero-section">
+        <h1 class="hero-quote">
+            "Clothing is not just fabric; it is the silent language of your soul. <span>Wear your story</span> before it's told."
+        </h1>
+        <p class="hero-sub">Crafted for those who refuse to blend in.</p>
+    </section>
+
+    <div class="countdown-banner">
+        <div class="countdown-title"><i class="fas fa-hourglass-half"></i> NEXT LIMITED DROP UNLOCKS IN</div>
+        <div class="countdown-timers">
+            <div class="time-box"><span class="time-value" id="days">02</span><span class="time-label">Days</span></div>
+            <div class="time-box"><span class="time-value" id="hours">14</span><span class="time-label">Hours</span></div>
+            <div class="time-box"><span class="time-value" id="minutes">45</span><span class="time-label">Minutes</span></div>
+            <div class="time-box"><span class="time-value" id="seconds">30</span><span class="time-label">Seconds</span></div>
+        </div>
+    </div>
+
+    <section class="founders-section">
+        <div class="founders-container">
+            <h3 class="founders-title">FROM THE FOUNDERS</h3>
+            <p class="founders-text">
+                "We built The Treasurer not just as a clothing brand, but as a movement for individuals who value authenticity, bold aesthetics, and timeless streetwear culture. Every piece we drop is limited, intentional, and designed to make you stand apart."
+            </p>
+            <div class="founders-sign">— Muhammad Basit & Ahmed Shomail</div>
+        </div>
+    </section>
+
+    <main class="catalog-container">
+        <div class="filter-search-row">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search exclusive drops..." oninput="filterCatalogProducts()">
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.85rem; letter-spacing: 1px;" id="product-count-label">
+                Showing all active releases
+            </div>
+        </div>
+
+        <section class="category-section" id="tshirts">
+            <div class="catalog-header"><h2>T-SHIRTS COLLECTION</h2><p>Heavyweight luxury tees engineered for daily statement wear.</p></div>
+            <div class="product-grid" id="grid-tshirts"></div>
+        </section>
+
+        <section class="category-section" id="pants">
+            <div class="catalog-header"><h2>PANTS COLLECTION</h2><p>Precision-tailored cargo, joggers, and street trousers.</p></div>
+            <div class="product-grid" id="grid-pants"></div>
+        </section>
+
+        <section class="category-section" id="jeans">
+            <div class="catalog-header"><h2>JEANS COLLECTION</h2><p>Custom distressed, relaxed, and premium raw denim.</p></div>
+            <div class="product-grid" id="grid-jeans"></div>
+        </section>
+
+        <section class="category-section" id="oversized">
+            <div class="catalog-header"><h2>OVERSIZED DROPS</h2><p>Boxy fits and streetwear oversized silhouettes.</p></div>
+            <div class="product-grid" id="grid-oversized"></div>
+        </section>
+
+        <section class="category-section" id="all-drops">
+            <div class="catalog-header"><h2>ALL ACTIVE DROPS</h2><p>Full inventory of all exclusive limited releases.</p></div>
+            <div class="product-grid" id="product-grid"></div>
+        </section>
+    </main>
+
+    <!-- ZOOM MODAL FOR IMAGES -->
+    <div class="modal" id="imageZoomModal" onclick="closeZoomModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span id="zoomImageTitle" style="font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.2rem;"></span>
+                <span class="close-btn" onclick="closeZoomModal()">&times;</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 12px;"><i class="fas fa-search-plus"></i> Move mouse over the image to inspect fabric details</p>
+            
+            <div class="zoom-lens-container" id="zoomContainer">
+                <img id="zoomImageFull" src="" alt="Zoomed View">
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 15px; text-align: left;">
+                <h4 style="font-family: 'Cinzel', serif; color: var(--gold); margin: 0 0 8px 0;">PRODUCT SPECIFICATIONS</h4>
+                <p id="zoomImageDesc" style="color: #ccc; font-size: 0.85rem; line-height: 1.6; white-space: pre-line; margin: 0;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE / EDIT ACCOUNT MODAL -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>EDIT ACCOUNT PROFILE</h3>
+                <span class="close-btn" onclick="toggleProfileModal(false)">&times;</span>
+            </div>
+            <form id="editProfileForm" onsubmit="handleUpdateProfile(event)">
+                <div class="input-group">
+                    <label for="profileName">YOUR NAME *</label>
+                    <input type="text" id="profileName" required>
+                </div>
+                <div class="input-group">
+                    <label for="profileEmail">EMAIL ADDRESS (READ-ONLY)</label>
+                    <input type="email" id="profileEmail" disabled style="opacity: 0.6; cursor: not-allowed;">
+                </div>
+                <div class="input-group">
+                    <label for="profilePassword">NEW PASSWORD (LEAVE BLANK TO KEEP CURRENT)</label>
+                    <input type="password" id="profilePassword" placeholder="Enter new password">
+                </div>
+                <button type="submit" class="secure-btn" style="width: 100%; padding: 0.9rem; margin-top: 1rem;">UPDATE PROFILE</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CART MODAL -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>YOUR SECURE CART</h3>
+                <span class="close-btn" onclick="toggleCartModal(false)">&times;</span>
+            </div>
+            <div id="cart-items-list" style="margin-bottom: 1.5rem;"></div>
+            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
+                <input type="text" id="coupon-input" placeholder="PROMO CODE" style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); color: #fff; padding: 0.6rem 0.8rem; text-transform: uppercase;">
+                <button onclick="applyCoupon()" class="nav-btn" style="border-color: var(--gold); color: var(--gold);">APPLY</button>
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span style="font-family: 'Cinzel', serif; font-size: 1.1rem;">Total Amount:</span>
+                <span id="cart-total-price" style="color: var(--gold); font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 700;">Rs. 0</span>
+            </div>
+            <button class="secure-btn" style="width: 100%; padding: 0.9rem;" onclick="openCheckoutModal()">PROCEED TO CHECKOUT</button>
+        </div>
+    </div>
+
+    <!-- COD CHECKOUT ADDRESS FORM MODAL -->
+    <div class="modal" id="checkoutModal">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>CASH ON DELIVERY</h3>
+                <span class="close-btn" onclick="closeCheckoutModal()">&times;</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Enter your delivery details below to confirm order</p>
+            
+            <form id="codAddressForm" onsubmit="handleCODCheckout(event)">
+                <div class="input-group">
+                    <label for="checkoutName">FULL NAME *</label>
+                    <input type="text" id="checkoutName" placeholder="e.g. Basit Ali" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="checkoutPhone">PHONE NUMBER (+92 FORMAT) *</label>
+                    <div style="display: flex; align-items: center; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 2px;">
+                        <span style="padding: 0.8rem; background: rgba(212,175,55,0.1); color: var(--gold); border-right: 1px solid var(--border-color); font-weight: 600; font-size: 0.9rem;">+92</span>
+                        <input type="tel" id="checkoutPhone" placeholder="3001234567" pattern="[0-9]{10}" maxlength="10" title="Please enter exactly 10 digits after +92 (e.g. 3001234567)" style="border: none; background: transparent; flex: 1; padding: 0.8rem 1rem; color: var(--text-main); font-size: 0.95rem;" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="checkoutCity">CITY *</label>
+                    <input type="text" id="checkoutCity" placeholder="e.g. Karachi, Lahore, Quetta" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="checkoutAddress">COMPLETE SHIPPING ADDRESS *</label>
+                    <textarea id="checkoutAddress" rows="3" placeholder="House/Flat No, Street, Area" required></textarea>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); padding: 0.8rem; margin: 1rem 0; text-align: center; font-size: 0.85rem;">
+                    Payment Method: <strong style="color: var(--gold);">Cash on Delivery (COD)</strong>
+                </div>
+
+                <button type="submit" class="secure-btn" style="width: 100%; padding: 0.9rem;">CONFIRM ORDER (COD)</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <h3>THE TREASURER</h3>
+            <p>High-end limited drops engineered with precision. Stand out, stay authentic.</p>
+            <div class="footer-bottom">&copy; 2026 THE TREASURER. Designed by Muhammad Basit & Ahmed Shomail.</div>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let cart = JSON.parse(localStorage.getItem('treasurer_cart')) || [];
+        let currentUser = JSON.parse(localStorage.getItem('treasurer_user')) || null;
+        let globalProducts = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNavbar();
+            fetchCatalogProducts();
+            updateCartCount();
+            setupZoomEvents();
+        });
+
+        function setupZoomEvents() {
+            const container = document.getElementById('zoomContainer');
+            const img = document.getElementById('zoomImageFull');
+            if(!container || !img) return;
+
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                img.style.transformOrigin = `${x}% ${y}%`;
+                img.style.transform = 'scale(2.5)';
+            });
+
+            container.addEventListener('mouseleave', () => {
+                img.style.transformOrigin = 'center center';
+                img.style.transform = 'scale(1)';
+            });
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function renderNavbar() {
+            const container = document.getElementById('nav-actions-container');
+            currentUser = JSON.parse(localStorage.getItem('treasurer_user'));
+
+            if (currentUser && currentUser.name) {
+                container.innerHTML = `
+                    <button class="cart-icon-btn" onclick="toggleCartModal(true)">
+                        <i class="fas fa-shopping-bag"></i> Cart <span class="cart-count" id="cart-badge">0</span>
+                    </button>
+                    <button class="nav-btn" onclick="window.location.href='account.html'"><i class="fas fa-user-circle"></i> ${currentUser.name}</button>
+                    <button class="nav-btn" onclick="toggleProfileModal(true)" title="Edit Profile"><i class="fas fa-user-edit"></i></button>
+                    <button class="nav-btn" onclick="logoutUser()" style="border-color: #ff4d4d; color: #ff4d4d;"><i class="fas fa-sign-out-alt"></i></button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button class="cart-icon-btn" onclick="toggleCartModal(true)">
+                        <i class="fas fa-shopping-bag"></i> Cart <span class="cart-count" id="cart-badge">0</span>
+                    </button>
+                    <button onclick="window.location.href='login.html'" class="nav-btn"><i class="fas fa-lock"></i> ADMIN / LOGIN</button>
+                `;
+            }
+        }
+
+        async function fetchCatalogProducts() {
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                globalProducts = await response.json();
+                renderFilteredProducts(globalProducts);
+            } catch (err) { console.error(err); }
+        }
+
+        function filterCatalogProducts() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = globalProducts.filter(p => 
+                p.name.toLowerCase().includes(query) || (p.description && p.description.toLowerCase().includes(query))
+            );
+            renderFilteredProducts(filtered);
+        }
+
+        function renderFilteredProducts(products) {
+            const gridAll = document.getElementById('product-grid');
+            const gridTshirts = document.getElementById('grid-tshirts');
+            const gridPants = document.getElementById('grid-pants');
+            const gridJeans = document.getElementById('grid-jeans');
+            const gridOversized = document.getElementById('grid-oversized');
+
+            if(gridAll) gridAll.innerHTML = '';
+            if(gridTshirts) gridTshirts.innerHTML = '';
+            if(gridPants) gridPants.innerHTML = '';
+            if(gridJeans) gridJeans.innerHTML = '';
+            if(gridOversized) gridOversized.innerHTML = '';
+
+            let counts = { tshirt: 0, pant: 0, jean: 0, oversized: 0 };
+
+            products.forEach(product => {
+                const text = `${product.name} ${product.description || ''}`.toLowerCase();
+                
+                if(gridAll) gridAll.appendChild(createProductCard(product));
+
+                if (text.includes('shirt') || text.includes('tee')) {
+                    if(gridTshirts) gridTshirts.appendChild(createProductCard(product));
+                    counts.tshirt++;
+                } 
+                if (text.includes('pant') || text.includes('trouser') || text.includes('cargo')) {
+                    if(gridPants) gridPants.appendChild(createProductCard(product));
+                    counts.pant++;
+                } 
+                if (text.includes('jean') || text.includes('denim')) {
+                    if(gridJeans) gridJeans.appendChild(createProductCard(product));
+                    counts.jean++;
+                } 
+                if (text.includes('oversize') || text.includes('boxy') || text.includes('heavyweight')) {
+                    if(gridOversized) gridOversized.appendChild(createProductCard(product));
+                    counts.oversized++;
+                }
+            });
+
+            if (counts.tshirt === 0 && gridTshirts) gridTshirts.innerHTML = '<p style="color: var(--text-muted);">No T-Shirts found.</p>';
+            if (counts.pant === 0 && gridPants) gridPants.innerHTML = '<p style="color: var(--text-muted);">No Pants found.</p>';
+            if (counts.jean === 0 && gridJeans) gridJeans.innerHTML = '<p style="color: var(--text-muted);">No Jeans found.</p>';
+            if (counts.oversized === 0 && gridOversized) gridOversized.innerHTML = '<p style="color: var(--text-muted);">No Oversized items found.</p>';
+        }
+
+        function createProductCard(product) {
+            let images = [];
+            try {
+                images = product.images ? JSON.parse(product.images) : [product.image];
+            } catch(e) {
+                images = [product.image];
+            }
+
+            const mainImgUrl = images[0].startsWith('http') ? images[0] : `http://localhost:5000/${images[0]}`;
+
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            
+            let thumbnailsHtml = '';
+            if(images.length > 1) {
+                thumbnailsHtml = `
+                    <div class="gallery-thumbnails">
+                        ${images.map((img, idx) => {
+                            const thumbUrl = img.startsWith('http') ? img : `http://localhost:5000/${img}`;
+                            return `<img src="${thumbUrl}" class="thumb-img ${idx === 0 ? 'active' : ''}" onclick="switchCardImage(this, '${thumbUrl}')">`;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="product-img-box" onclick="openZoomModal('${mainImgUrl}', '${product.name.replace(/'/g, "\\'")}', '${(product.description || '').replace(/'/g, "\\'")}')">
+                    <img src="${mainImgUrl}" alt="${product.name}" class="card-main-img">
+                    <span class="zoom-hint"><i class="fas fa-search-plus"></i> ZOOM</span>
+                </div>
+                ${thumbnailsHtml}
+                <div class="product-info">
+                    <h3 class="product-title">${product.name}</h3>
+                    <p class="product-desc">${product.description || ''}</p>
+                    <div class="product-footer">
+                        <span class="product-price">Rs. ${product.price}</span>
+                        <button onclick="addToCart('${product.id}', '${product.name.replace(/'/g, "\\'")}', ${product.price})" class="secure-btn">ADD TO CART</button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function switchCardImage(thumbElement, newImgSrc) {
+            const cardBox = thumbElement.closest('.product-card').querySelector('.card-main-img');
+            cardBox.src = newImgSrc;
+            const card = thumbElement.closest('.product-card');
+            card.querySelectorAll('.thumb-img').forEach(t => t.classList.remove('active'));
+            thumbElement.classList.add('active');
+
+            const parentBox = card.querySelector('.product-img-box');
+            parentBox.setAttribute('onclick', `openZoomModal('${newImgSrc}', '${card.querySelector('.product-title').innerText}', '')`);
+        }
+
+        function openZoomModal(imgSrc, title, desc) {
+            document.getElementById('zoomImageFull').src = imgSrc;
+            document.getElementById('zoomImageTitle').innerText = title;
+            document.getElementById('zoomImageDesc').innerText = desc;
+            document.getElementById('imageZoomModal').style.display = 'flex';
+        }
+
+        function closeZoomModal() {
+            document.getElementById('imageZoomModal').style.display = 'none';
+        }
+
+        function toggleProfileModal(show) {
+            const modal = document.getElementById('profileModal');
+            if(show && currentUser) {
+                document.getElementById('profileName').value = currentUser.name;
+                document.getElementById('profileEmail').value = currentUser.email;
+                document.getElementById('profilePassword').value = '';
+            }
+            modal.style.display = show ? 'flex' : 'none';
+        }
+
+        async function handleUpdateProfile(e) {
+            e.preventDefault();
+            const newName = document.getElementById('profileName').value.trim();
+            const newPassword = document.getElementById('profilePassword').value.trim();
+
+            currentUser.name = newName;
+            localStorage.setItem('treasurer_user', JSON.stringify(currentUser));
+            renderNavbar();
+            toggleProfileModal(false);
+            showToast('Profile updated successfully!');
+        }
+
+        function addToCart(id, name, price) {
+            const index = cart.findIndex(i => i.id === id);
+            if(index > -1) cart[index].quantity += 1;
+            else cart.push({ id, name, price: parseFloat(price), quantity: 1 });
+            
+            localStorage.setItem('treasurer_cart', JSON.stringify(cart));
+            updateCartCount();
+            showToast(`"${name}" added to cart!`);
+        }
+
+        function updateCartCount() {
+            const badge = document.getElementById('cart-badge');
+            const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+            if(badge) badge.innerText = total;
+
+            const cartList = document.getElementById('cart-items-list');
+            const totalPriceEl = document.getElementById('cart-total-price');
+
+            if(cartList) {
+                if(cart.length === 0) {
+                    cartList.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Your cart is empty.</p>';
+                } else {
+                    cartList.innerHTML = cart.map((item, idx) => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+                            <div>
+                                <p style="margin:0; font-weight:600;">${item.name} (x${item.quantity})</p>
+                                <small style="color: var(--gold);">Rs. ${item.price * item.quantity}</small>
+                            </div>
+                            <button onclick="removeFromCart(${idx})" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            if(totalPriceEl) totalPriceEl.innerText = `Rs. ${cart.reduce((s, i) => s + (i.price * i.quantity), 0)}`;
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            localStorage.setItem('treasurer_cart', JSON.stringify(cart));
+            updateCartCount();
+        }
+
+        function toggleCartModal(show) {
+            document.getElementById('cartModal').style.display = show ? 'flex' : 'none';
+        }
+
+        function openCheckoutModal() {
+            if(cart.length === 0) {
+                alert("Your cart is empty! Add items first.");
+                return;
+            }
+            toggleCartModal(false);
+            document.getElementById('checkoutModal').style.display = 'flex';
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkoutModal').style.display = 'none';
+        }
+
+        async function handleCODCheckout(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('checkoutName').value.trim();
+            const phoneInput = document.getElementById('checkoutPhone').value.trim();
+            const phone = '+92' + phoneInput;
+            const city = document.getElementById('checkoutCity').value.trim();
+            const address = document.getElementById('checkoutAddress').value.trim();
+
+            const orderData = {
+                customerName: name,
+                customerEmail: currentUser ? currentUser.email : 'guest@treasurer.com',
+                phone: phone,
+                city: city,
+                address: address,
+                paymentMethod: 'COD',
+                items: JSON.stringify(cart),
+                totalAmount: cart.reduce((s, i) => s + (i.price * i.quantity), 0)
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                if(res.ok) {
+                    showToast('Order successfully placed!');
+                    cart = [];
+                    localStorage.removeItem('treasurer_cart');
+                    updateCartCount();
+                    closeCheckoutModal();
+                    document.getElementById('codAddressForm').reset();
+                } else {
+                    alert('Failed to place order.');
+                }
+            } catch(err) {
+                alert('Server connection error.');
+            }
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('treasurer_user');
+            currentUser = null;
+            renderNavbar();
+            showToast('Logged out successfully.');
+        }
+    </script>
+</body>
+</html>

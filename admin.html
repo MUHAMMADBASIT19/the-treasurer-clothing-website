@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal | The Treasurer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #030304;
+            --card-bg: #0d0d11;
+            --gold: #d4af37;
+            --text-main: #ffffff;
+            --text-muted: #8e8e93;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 6%; border-bottom: 1px solid var(--border-color); background: rgba(3, 3, 4, 0.95); }
+        .brand-name { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 2px; color: var(--text-main); display: block; }
+        .brand-slogan { font-size: 0.7rem; letter-spacing: 3px; color: var(--gold); display: block; margin-top: 2px; }
+        .logout-btn { background: transparent; color: #ff4d4d; border: 1px solid rgba(255, 77, 77, 0.3); padding: 0.5rem 1.2rem; border-radius: 2px; cursor: pointer; font-size: 0.8rem; }
+        .logout-btn:hover { background: #ff4d4d; color: #fff; }
+
+        .dashboard-container { padding: 3rem 6%; max-width: 1400px; margin: 0 auto; }
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
+        .dashboard-header h2 { font-family: 'Cinzel', serif; font-size: 2rem; letter-spacing: 2px; margin: 0; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 2rem; border-radius: 4px; }
+        .stat-title { color: var(--text-muted); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .stat-value { font-family: 'Cinzel', serif; font-size: 2.2rem; font-weight: 700; color: var(--gold); }
+
+        .admin-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 2.5rem; border-radius: 4px; margin-bottom: 3rem; }
+        .admin-card h3 { font-family: 'Cinzel', serif; font-size: 1.3rem; letter-spacing: 2px; margin-top: 0; margin-bottom: 2rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: end; }
+        
+        .input-group label { display: block; font-size: 0.75rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .input-group input, .input-group textarea, .input-group select { width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.8rem; border-radius: 2px; box-sizing: border-box; font-family: inherit; }
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: var(--gold); outline: none; }
+        
+        .publish-btn { background: var(--gold); color: var(--bg-color); border: none; padding: 0.85rem 2rem; font-weight: 600; border-radius: 2px; cursor: pointer; letter-spacing: 1px; height: 45px; grid-column: 1 / -1; margin-top: 1rem; }
+        .publish-btn:hover { background: #fff; }
+
+        .collections-section h3, .orders-section h3 { font-family: 'Cinzel', serif; font-size: 1.4rem; letter-spacing: 2px; margin-bottom: 1.5rem; }
+        .collections-table { width: 100%; border-collapse: collapse; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; text-align: left; margin-bottom: 3rem; }
+        .collections-table th, .collections-table td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+        .collections-table th { font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.85rem; }
+        .collections-table img { width: 50px; height: 50px; object-fit: cover; border-radius: 2px; margin-right: 4px; }
+        .soldout-badge { background: #e74c3c; color: #fff; padding: 3px 8px; border-radius: 2px; font-size: 0.75rem; font-weight: 700; }
+        .instock-badge { background: #2ecc71; color: #fff; padding: 3px 8px; border-radius: 2px; font-size: 0.75rem; font-weight: 700; }
+
+        .action-btns { display: flex; gap: 0.8rem; }
+        .edit-btn { background: #2f3542; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 2px; cursor: pointer; }
+        .delete-btn { background: rgba(255, 77, 77, 0.2); color: #ff4d4d; border: 1px solid rgba(255, 77, 77, 0.4); padding: 0.4rem 0.8rem; border-radius: 2px; cursor: pointer; }
+
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--gold); padding: 2.5rem; border-radius: 4px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-header h3 { font-family: 'Cinzel', serif; margin:0; color: var(--gold); }
+        .close-btn { color: var(--text-muted); cursor: pointer; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo-area">
+            <a href="index.html" style="text-decoration:none;">
+                <span class="brand-name">THE TREASURER</span>
+                <span class="brand-slogan">ADMIN PORTAL</span>
+            </a>
+        </div>
+        <button class="logout-btn" onclick="logout()">LOGOUT</button>
+    </header>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h2>ADMIN DASHBOARD</h2>
+            <span style="color: var(--text-muted);">Welcome back, Manager</span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total Revenue</div>
+                <div class="stat-value" id="stat-revenue">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Orders</div>
+                <div class="stat-value" id="stat-orders">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Active Drops</div>
+                <div class="stat-value" id="active-drops-count">0</div>
+            </div>
+        </div>
+
+        <!-- Create Coupon Card -->
+        <div class="admin-card">
+            <h3>CREATE PROMO / DISCOUNT COUPON</h3>
+            <form onsubmit="createCoupon(event)">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Coupon Code</label>
+                        <input type="text" id="coupon-code" placeholder="e.g. TREASURER10" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Discount Percentage (%)</label>
+                        <input type="number" id="coupon-discount" placeholder="10" min="1" max="100" required>
+                    </div>
+                    <button type="submit" class="publish-btn" style="grid-column: auto; margin-top: 0;">CREATE COUPON</button>
+                </div>
+            </form>
+
+            <h4 style="font-family: 'Cinzel', serif; color: var(--gold); margin-top: 2rem;">ACTIVE COUPONS</h4>
+            <div style="overflow-x: auto;">
+                <table class="collections-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Discount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coupon-list">
+                        <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Loading coupons...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Drop Card -->
+        <div class="admin-card">
+            <h3>ADD NEW DROP</h3>
+            <form id="product-form" onsubmit="publishProduct(event)">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Title</label>
+                        <input type="text" id="p-title" placeholder="e.g. Obsidian Heavyweight Tee" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Price (PKR)</label>
+                        <input type="number" step="1" id="p-price" placeholder="4500" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Sale Discount (%)</label>
+                        <input type="number" id="p-discount" placeholder="e.g. 10 (Optional)" min="0" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Category Tag</label>
+                        <input type="text" id="p-category" placeholder="T-Shirt / Oversized / Jeans / Pants" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Stock Status</label>
+                        <select id="p-soldout">
+                            <option value="false">In Stock</option>
+                            <option value="true">Sold Out</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="grid-column: 1 / -1;">
+                        <label>Detailed Product Description & Specifications</label>
+                        <textarea id="p-desc" rows="4" placeholder="Mention fabric GSM, fit type, print techniques, wash care instructions, etc." required></textarea>
+                    </div>
+                    <div class="input-group" style="grid-column: 1 / -1;">
+                        <label>Product Images (Select 1 or More)</label>
+                        <input type="file" id="p-images" accept="image/*" multiple required>
+                    </div>
+                    <button type="submit" class="publish-btn">PUBLISH DROP</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Recent Customer Orders Section -->
+        <div class="orders-section">
+            <h3>RECENT CUSTOMER ORDERS & SHIPPING INFO</h3>
+            <div style="overflow-x: auto;">
+                <table class="collections-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer Shipping Details</th>
+                            <th>Items Ordered</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-orders-list">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading orders...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Manage Collections Section -->
+        <div class="collections-section">
+            <h3>MANAGE ACTIVE COLLECTIONS</h3>
+            <div style="overflow-x: auto;">
+                <table class="collections-table">
+                    <thead>
+                        <tr>
+                            <th>Images</th>
+                            <th>Title</th>
+                            <th>Category & Description</th>
+                            <th>Price (PKR)</th>
+                            <th>Stock Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-product-list">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading collections...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL WITH SOLD OUT OPTION -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>EDIT PRODUCT DROP</h3>
+                <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="edit-form" onsubmit="submitEditForm(event)">
+                <input type="hidden" id="edit-id">
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Title</label>
+                    <input type="text" id="edit-title" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Base Price (PKR)</label>
+                    <input type="number" id="edit-price" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Sale Discount (%)</label>
+                    <input type="number" id="edit-discount" placeholder="0 to 100" min="0" max="100">
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Stock Status (Sold Out / Out of Stock)</label>
+                    <select id="edit-soldout">
+                        <option value="false">In Stock</option>
+                        <option value="true">Sold Out (Out of Stock)</option>
+                    </select>
+                </div>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <label>Detailed Description</label>
+                    <textarea id="edit-desc" rows="4" required></textarea>
+                </div>
+                <div class="input-group" style="margin-bottom: 1.5rem;">
+                    <label>Replace Images (Optional)</label>
+                    <input type="file" id="edit-images" accept="image/*" multiple>
+                </div>
+                <button type="submit" class="publish-btn" style="width:100%;">UPDATE DROP DETAILS</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let allProducts = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminProducts();
+            loadAdminOrders();
+            loadCoupons();
+        });
+
+        async function createCoupon(e) {
+            e.preventDefault();
+            const code = document.getElementById('coupon-code').value;
+            const discountPercent = document.getElementById('coupon-discount').value;
+
+            try {
+                const res = await fetch(`${API_URL}/coupons`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, discountPercent })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Coupon Created Successfully!');
+                    document.getElementById('coupon-code').value = '';
+                    document.getElementById('coupon-discount').value = '';
+                    loadCoupons();
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) { alert('Server error.'); }
+        }
+
+        async function loadCoupons() {
+            try {
+                const res = await fetch(`${API_URL}/coupons`);
+                const coupons = await res.json();
+                const tbody = document.getElementById('coupon-list');
+                tbody.innerHTML = '';
+
+                if (!Array.isArray(coupons) || coupons.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No active coupons.</td></tr>`;
+                    return;
+                }
+
+                coupons.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight: 700; color: var(--gold);">${c.code}</td>
+                        <td>${c.discountPercent}% OFF</td>
+                        <td><button class="delete-btn" onclick="deleteCoupon(${c.id})"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function deleteCoupon(id) {
+            if (!confirm('Are you sure you want to delete this coupon?')) return;
+            try {
+                const res = await fetch(`${API_URL}/coupons/${id}`, { method: 'DELETE' });
+                if (res.ok) loadCoupons();
+            } catch (err) { alert('Server error.'); }
+        }
+
+        async function loadAdminProducts() {
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                allProducts = await response.json();
+                
+                const tbody = document.getElementById('admin-product-list');
+                const countElem = document.getElementById('active-drops-count');
+                
+                if (countElem) countElem.innerText = allProducts.length;
+                if (!tbody) return;
+
+                tbody.innerHTML = '';
+                if (!Array.isArray(allProducts) || allProducts.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No active drops found.</td></tr>`;
+                    return;
+                }
+
+                allProducts.forEach(product => {
+                    let imagesArr = [];
+                    if (product.images) {
+                        try { imagesArr = JSON.parse(product.images); } catch(e) {}
+                    }
+                    if (imagesArr.length === 0) imagesArr = [product.image];
+
+                    const imgTags = imagesArr.map(img => `<img src="http://localhost:5000/${img}">`).join('');
+                    const formattedPrice = `Rs. ${Number(product.price).toLocaleString()}`;
+                    const stockTag = product.isSoldOut 
+                        ? `<span class="soldout-badge">SOLD OUT</span>` 
+                        : `<span class="instock-badge">IN STOCK</span>`;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><div style="display:flex;">${imgTags}</div></td>
+                        <td style="font-weight: 600; color: #fff;">${product.name}</td>
+                        <td style="color: var(--text-muted); max-width: 300px; font-size: 0.8rem;">${product.description || '-'}</td>
+                        <td style="color: var(--gold); font-family: 'Cinzel', serif; font-weight: 700;">${formattedPrice}</td>
+                        <td>${stockTag}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="edit-btn" onclick="openEditModal(${product.id})"><i class="fas fa-edit"></i> Edit</button>
+                                <button class="delete-btn" onclick="deleteProduct(${product.id})"><i class="fas fa-trash"></i> Delete</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadAdminOrders() {
+            try {
+                const response = await fetch(`${API_URL}/orders`);
+                const orders = await response.json();
+
+                const tbody = document.getElementById('admin-orders-list');
+                const statRevenue = document.getElementById('stat-revenue');
+                const statOrders = document.getElementById('stat-orders');
+
+                if (statOrders) statOrders.innerText = orders.length;
+
+                let totalRev = 0;
+                orders.forEach(o => totalRev += (o.totalAmount || 0));
+                if (statRevenue) statRevenue.innerText = `Rs. ${totalRev.toLocaleString()}`;
+
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                if (!Array.isArray(orders) || orders.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No customer orders yet.</td></tr>`;
+                    return;
+                }
+
+                // Robust loop with individual item safety to prevent rendering crashes
+                orders.forEach(order => {
+                    let itemsArr = [];
+                    try {
+                        itemsArr = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+                    } catch (e) { itemsArr = []; }
+
+                    const itemsSummary = Array.isArray(itemsArr) && itemsArr.length > 0 
+                        ? itemsArr.map(i => `${i.name || 'Item'} (x${i.quantity || 1})`).join(', ') 
+                        : 'Custom/Direct Order';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight: 600; color: var(--gold);">#${order.id}</td>
+                        <td>
+                            <strong style="color: #fff; font-size: 0.95rem;">${order.customerName || 'N/A'}</strong><br>
+                            <span style="color: var(--gold); font-size: 0.85rem;"><i class="fas fa-phone-alt"></i> ${order.phone || 'N/A'}</span><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;"><i class="fas fa-map-marker-alt"></i> <strong>City:</strong> ${order.city || 'N/A'}</span><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;"><strong>Address:</strong> ${order.address || 'N/A'}</span>
+                        </td>
+                        <td style="font-size: 0.85rem; color: var(--text-muted);">${itemsSummary}</td>
+                        <td style="font-family: 'Cinzel', serif; color: #fff; font-weight: 700;">Rs. ${Number(order.totalAmount || 0).toLocaleString()}</td>
+                        <td>
+                            <select onchange="updateOrderStatus(${order.id}, this.value)" style="background: var(--bg-color); color: #fff; border: 1px solid var(--border-color); padding: 0.3rem; border-radius: 2px;">
+                                <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Dispatched" ${order.status === 'Dispatched' ? 'selected' : ''}>Dispatched</option>
+                                <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                            </select>
+                        </td>
+                        <td><button class="delete-btn" onclick="deleteOrder(${order.id})"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) { 
+                console.error(err); 
+                const tbody = document.getElementById('admin-orders-list');
+                if(tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ff4d4d;">Error loading orders. Check console.</td></tr>`;
+            }
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const res = await fetch(`${API_URL}/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    loadAdminOrders();
+                } else {
+                    alert('Failed to update status.');
+                }
+            } catch (err) { alert('Server error.'); }
+        }
+
+        async function deleteOrder(id) {
+            if (!confirm('Are you sure you want to delete this order record?')) return;
+            try {
+                const res = await fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadAdminOrders();
+                } else {
+                    alert('Failed to delete order.');
+                }
+            } catch (err) {
+                alert('Server connection error.');
+            }
+        }
+
+        async function publishProduct(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('name', document.getElementById('p-title').value);
+            formData.append('price', document.getElementById('p-price').value);
+            formData.append('discountPercent', document.getElementById('p-discount').value || 0);
+            formData.append('isSoldOut', document.getElementById('p-soldout').value);
+            
+            const categoryTag = document.getElementById('p-category').value;
+            const fullDesc = document.getElementById('p-desc').value;
+            formData.append('description', `[${categoryTag}] ${fullDesc}`);
+
+            const fileInput = document.getElementById('p-images');
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('images', fileInput.files[i]);
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/products`, { method: 'POST', body: formData });
+                if (res.ok) {
+                    alert('Product Drop Published Successfully!');
+                    document.getElementById('product-form').reset();
+                    loadAdminProducts();
+                } else { alert('Error publishing product.'); }
+            } catch (err) { alert('Server connection error.'); }
+        }
+
+        function openEditModal(id) {
+            const product = allProducts.find(p => p.id === id);
+            if (!product) return;
+            document.getElementById('edit-id').value = product.id;
+            document.getElementById('edit-title').value = product.name;
+            document.getElementById('edit-price').value = product.originalPrice || product.price;
+            document.getElementById('edit-discount').value = product.discountPercent || 0;
+            document.getElementById('edit-desc').value = product.description || '';
+            document.getElementById('edit-soldout').value = product.isSoldOut ? 'true' : 'false';
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        async function submitEditForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('edit-title').value);
+            formData.append('price', document.getElementById('edit-price').value);
+            formData.append('discountPercent', document.getElementById('edit-discount').value);
+            formData.append('description', document.getElementById('edit-desc').value);
+            formData.append('isSoldOut', document.getElementById('edit-soldout').value);
+            
+            const fileInput = document.getElementById('edit-images');
+            if (fileInput.files.length > 0) {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    formData.append('images', fileInput.files[i]);
+                }
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/products/${id}`, { method: 'PUT', body: formData });
+                if (res.ok) {
+                    alert('Product Updated Successfully!');
+                    closeEditModal();
+                    loadAdminProducts();
+                } else { alert('Failed to update.'); }
+            } catch (err) { alert('Server connection error.'); }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this drop?')) return;
+            try {
+                const res = await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
+                if (res.ok) { loadAdminProducts(); }
+            } catch (err) { alert('Server connection error.'); }
+        }
+
+        function logout() { window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>

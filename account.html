@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account & Orders | The Treasurer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #030304;
+            --card-bg: #0b0b0f;
+            --gold: #d4af37;
+            --gold-light: #f3e5ab;
+            --text-main: #ffffff;
+            --text-muted: #9a9a9f;
+            --border-color: rgba(212, 175, 55, 0.15);
+            --transition: all 0.35s ease;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 6%;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(3, 3, 4, 0.85);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo-brand { text-decoration: none; color: inherit; }
+        .brand-name { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 3px; color: var(--text-main); display: block; }
+        .brand-slogan { font-size: 0.65rem; letter-spacing: 4px; color: var(--gold); display: block; margin-top: 3px; }
+
+        .nav-btn { background: transparent; color: var(--text-main); border: 1px solid rgba(255,255,255,0.15); padding: 0.5rem 1.2rem; border-radius: 2px; cursor: pointer; font-size: 0.8rem; letter-spacing: 1px; transition: var(--transition); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .nav-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(212, 175, 55, 0.05); }
+
+        .container { max-width: 1000px; margin: 4rem auto; padding: 0 6%; }
+        .account-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .account-header h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--gold); margin: 0; letter-spacing: 2px; }
+
+        .section-title { font-family: 'Cinzel', serif; font-size: 1.2rem; color: var(--text-main); margin-bottom: 1.5rem; letter-spacing: 1px; border-left: 3px solid var(--gold); padding-left: 10px; }
+
+        .order-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 1.5rem; margin-bottom: 1.5rem; transition: var(--transition); }
+        .order-card:hover { border-color: var(--gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+        .order-info-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px; }
+        .status-badge { background: rgba(212,175,55,0.15); color: var(--gold); padding: 4px 12px; border-radius: 2px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--border-color); }
+
+        .footer { background: var(--card-bg); border-top: 1px solid var(--border-color); padding: 3rem 6%; margin-top: 6rem; text-align: center; }
+        .footer-bottom { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1.5px; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo-area">
+            <a href="index.html" class="logo-brand">
+                <span class="brand-name">THE TREASURER</span>
+                <span class="brand-slogan">WEAR YOUR STORY</span>
+            </a>
+        </div>
+        <div>
+            <a href="index.html" class="nav-btn"><i class="fas fa-arrow-left"></i> BACK TO SHOP</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="account-header">
+            <div>
+                <h2 id="user-greeting">MY ACCOUNT</h2>
+                <p id="user-email-display" style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;"></p>
+            </div>
+            <button onclick="logout()" class="nav-btn" style="border-color: #ff4d4d; color: #ff4d4d;"><i class="fas fa-sign-out-alt"></i> LOGOUT</button>
+        </div>
+
+        <h3 class="section-title">ORDER HISTORY</h3>
+        <div id="customer-orders-list">
+            <p style="color: var(--text-muted);">Loading your order history...</p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">&copy; 2026 THE TREASURER. Designed by Muhammad Basit & Ahmed Shomail.</div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let currentUser = JSON.parse(localStorage.getItem('treasurer_user')) || null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!currentUser) {
+                alert("Please login first to view your account.");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('user-greeting').innerText = `WELCOME, ${currentUser.name.toUpperCase()}`;
+            document.getElementById('user-email-display').innerText = `Email: ${currentUser.email}`;
+
+            loadCustomerOrders();
+        });
+
+        async function loadCustomerOrders() {
+            try {
+                const res = await fetch(`${API_URL}/orders`);
+                const orders = await res.json();
+                const container = document.getElementById('customer-orders-list');
+                container.innerHTML = '';
+
+                // Filter orders belonging to this logged-in user email or name
+                const myOrders = orders.filter(o => o.customerEmail && o.customerEmail.toLowerCase() === currentUser.email.toLowerCase());
+
+                if (myOrders.length === 0) {
+                    container.innerHTML = `<p style="color: var(--text-muted); background: var(--card-bg); padding: 2rem; text-align: center; border: 1px solid var(--border-color); border-radius: 4px;">You haven't placed any orders yet.</p>`;
+                    return;
+                }
+
+                myOrders.forEach(order => {
+                    let itemsArr = [];
+                    try { itemsArr = JSON.parse(order.items || '[]'); } catch(e) {}
+
+                    const itemsHtml = itemsArr.map(i => `
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05);">
+                            <span>${i.name} <strong>(x${i.quantity})</strong></span>
+                            <span style="color: var(--gold);">Rs. ${i.price * i.quantity}</span>
+                        </div>
+                    `).join('');
+
+                    const orderCard = `
+                        <div class="order-card">
+                            <div class="order-info-row">
+                                <div>
+                                    <strong style="color: var(--gold); font-size: 1.1rem; font-family: 'Cinzel', serif;">ORDER #${order.id}</strong>
+                                    <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 10px;">${new Date(order.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <span class="status-badge">${order.status || 'Pending'}</span>
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 5px 0;"><strong>Shipping To:</strong> ${order.customerName}, ${order.address} (${order.city})</p>
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;"><strong>Phone:</strong> ${order.phone}</p>
+                            </div>
+
+                            <div style="background: rgba(255,255,255,0.02); padding: 0.8rem; border-radius: 2px; margin-bottom: 1rem;">
+                                ${itemsHtml}
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Cinzel', serif;">
+                                <span style="font-size: 0.9rem;">Total Paid (COD):</span>
+                                <span style="color: var(--gold); font-size: 1.2rem; font-weight: 700;">Rs. ${order.totalAmount}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += orderCard;
+                });
+            } catch (err) {
+                console.error(err);
+                document.getElementById('customer-orders-list').innerHTML = `<p style="color: #ff4d4d;">Failed to load order history.</p>`;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('treasurer_user');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
