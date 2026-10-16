@@ -214,6 +214,40 @@
         .zoom-hint { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: var(--gold); font-size: 0.7rem; padding: 4px 8px; border-radius: 2px; letter-spacing: 1px; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; }
         .product-img-box:hover .zoom-hint { opacity: 1; }
 
+        .wishlist-btn-card {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(3, 3, 4, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 10;
+        }
+        .wishlist-btn-card:hover, .wishlist-btn-card.active {
+            color: #ff4d4d;
+            border-color: #ff4d4d;
+            background: rgba(255, 77, 77, 0.1);
+        }
+
+        .size-selector-container { margin: 0.8rem 0; }
+        .size-label { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; display: block; margin-bottom: 0.4rem; }
+        .size-options { display: flex; gap: 6px; }
+        .size-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 2px; cursor: pointer; transition: var(--transition); }
+        .size-btn.active, .size-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(212, 175, 55, 0.1); }
+
+        .qty-container { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+        .qty-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); width: 28px; height: 28px; border-radius: 2px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; }
+        .qty-btn:hover { border-color: var(--gold); color: var(--gold); }
+        .qty-val { font-size: 0.85rem; font-weight: 600; min-width: 20px; text-align: center; }
+
         .gallery-thumbnails { display: flex; gap: 6px; padding: 10px 1.5rem 0 1.5rem; overflow-x: auto; }
         .thumb-img { width: 45px; height: 45px; border: 1px solid var(--border-color); border-radius: 2px; object-fit: cover; cursor: pointer; transition: var(--transition); }
         .thumb-img:hover, .thumb-img.active { border-color: var(--gold); transform: scale(1.05); }
@@ -389,6 +423,17 @@
         </div>
     </div>
 
+    <!-- WISHLIST MODAL -->
+    <div class="modal" id="wishlistModal">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>YOUR WISHLIST</h3>
+                <span class="close-btn" onclick="toggleWishlistModal(false)">&times;</span>
+            </div>
+            <div id="wishlist-items-list" style="margin-bottom: 1.5rem;"></div>
+        </div>
+    </div>
+
     <!-- CART MODAL -->
     <div class="modal" id="cartModal">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -464,12 +509,16 @@
         let cart = JSON.parse(localStorage.getItem('treasurer_cart')) || [];
         let currentUser = JSON.parse(localStorage.getItem('treasurer_user')) || null;
         let globalProducts = [];
+        let userWishlistIds = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             renderNavbar();
             fetchCatalogProducts();
             updateCartCount();
             setupZoomEvents();
+            if(currentUser && currentUser.id) {
+                fetchWishlist();
+            }
         });
 
         function setupZoomEvents() {
@@ -506,6 +555,9 @@
 
             if (currentUser && currentUser.name) {
                 container.innerHTML = `
+                    <button class="nav-btn" onclick="toggleWishlistModal(true)">
+                        <i class="fas fa-heart" style="color: #ff4d4d;"></i> Wishlist <span class="cart-count" id="wishlist-badge" style="position:relative; top:0; right:0; margin-left:4px; display:inline-block;">0</span>
+                    </button>
                     <button class="cart-icon-btn" onclick="toggleCartModal(true)">
                         <i class="fas fa-shopping-bag"></i> Cart <span class="cart-count" id="cart-badge">0</span>
                     </button>
@@ -513,8 +565,12 @@
                     <button class="nav-btn" onclick="toggleProfileModal(true)" title="Edit Profile"><i class="fas fa-user-edit"></i></button>
                     <button class="nav-btn" onclick="logoutUser()" style="border-color: #ff4d4d; color: #ff4d4d;"><i class="fas fa-sign-out-alt"></i></button>
                 `;
+                fetchWishlist();
             } else {
                 container.innerHTML = `
+                    <button class="nav-btn" onclick="toggleWishlistModal(true)">
+                        <i class="fas fa-heart" style="color: #ff4d4d;"></i> Wishlist
+                    </button>
                     <button class="cart-icon-btn" onclick="toggleCartModal(true)">
                         <i class="fas fa-shopping-bag"></i> Cart <span class="cart-count" id="cart-badge">0</span>
                     </button>
@@ -529,6 +585,98 @@
                 globalProducts = await response.json();
                 renderFilteredProducts(globalProducts);
             } catch (err) { console.error(err); }
+        }
+
+        async function fetchWishlist() {
+            if(!currentUser || !currentUser.id) return;
+            try {
+                const res = await fetch(`${API_URL}/wishlist/${currentUser.id}`);
+                const data = await res.json();
+                userWishlistIds = data.map(item => item.id);
+                updateWishlistBadge(data.length);
+                document.querySelectorAll('.wishlist-btn-card').forEach(btn => {
+                    const prodId = parseInt(btn.getAttribute('data-product-id'));
+                    if(userWishlistIds.includes(prodId)) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            } catch(err) { console.error(err); }
+        }
+
+        function updateWishlistBadge(count) {
+            const badge = document.getElementById('wishlist-badge');
+            if(badge) {
+                badge.innerText = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+        }
+
+        async function toggleWishlist(productId) {
+            if(!currentUser || !currentUser.id) {
+                alert('Please login first to manage your wishlist.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const isAlreadyWished = userWishlistIds.includes(parseInt(productId));
+
+            try {
+                if(isAlreadyWished) {
+                    await fetch(`${API_URL}/wishlist/${currentUser.id}/${productId}`, { method: 'DELETE' });
+                    showToast('Removed from wishlist');
+                } else {
+                    await fetch(`${API_URL}/wishlist`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: currentUser.id, productId: parseInt(productId) })
+                    });
+                    showToast('Added to wishlist!');
+                }
+                fetchWishlist();
+            } catch(err) {
+                console.error(err);
+                alert('Failed to update wishlist');
+            }
+        }
+
+        async function toggleWishlistModal(show) {
+            const modal = document.getElementById('wishlistModal');
+            if(show) {
+                if(!currentUser || !currentUser.id) {
+                    alert('Please login to view your wishlist.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                try {
+                    const res = await fetch(`${API_URL}/wishlist/${currentUser.id}`);
+                    const products = await res.json();
+                    const listContainer = document.getElementById('wishlist-items-list');
+                    
+                    if(products.length === 0) {
+                        listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Your wishlist is empty.</p>';
+                    } else {
+                        listContainer.innerHTML = products.map(prod => {
+                            let images = [];
+                            try { images = JSON.parse(prod.images); } catch(e) { images = [prod.image]; }
+                            const imgUrl = images[0].startsWith('http') ? images[0] : `http://localhost:5000/${images[0]}`;
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.8rem; gap: 10px;">
+                                    <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: contain; background: #000; border-radius: 2px;">
+                                    <div style="flex: 1;">
+                                        <p style="margin:0; font-weight:600; font-size: 0.9rem;">${prod.name}</p>
+                                        <small style="color: var(--gold);">Rs. ${prod.price}</small>
+                                    </div>
+                                    <button onclick="addToCart('${prod.id}', '${prod.name.replace(/'/g, "\\'")}', ${prod.price}, 'M', 1); toggleWishlist(${prod.id}); toggleWishlistModal(true);" class="secure-btn" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;">MOVE TO CART</button>
+                                    <button onclick="toggleWishlist(${prod.id}); toggleWishlistModal(true);" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                } catch(err) { console.error(err); }
+            }
+            modal.style.display = show ? 'flex' : 'none';
         }
 
         function filterCatalogProducts() {
@@ -592,9 +740,12 @@
             }
 
             const mainImgUrl = images[0].startsWith('http') ? images[0] : `http://localhost:5000/${images[0]}`;
+            const isWished = userWishlistIds.includes(product.id) ? 'active' : '';
+            const isSoldOut = product.isSoldOut === true || product.isSoldOut === 'true';
 
             const card = document.createElement('div');
             card.className = 'product-card';
+            card.setAttribute('data-id', product.id);
             
             let thumbnailsHtml = '';
             if(images.length > 1) {
@@ -608,22 +759,89 @@
                 `;
             }
 
+            const actionBtnHtml = isSoldOut 
+                ? `<button class="secure-btn" style="background: #444; color: #888; cursor: not-allowed;" disabled>SOLD OUT</button>`
+                : `<button onclick="addCardToCart(this, '${product.id}', '${product.name.replace(/'/g, "\\'")}', ${product.price})" class="secure-btn">ADD TO CART</button>`;
+
             card.innerHTML = `
                 <div class="product-img-box" onclick="openZoomModal('${mainImgUrl}', '${product.name.replace(/'/g, "\\'")}', '${(product.description || '').replace(/'/g, "\\'")}')">
                     <img src="${mainImgUrl}" alt="${product.name}" class="card-main-img">
+                    ${isSoldOut ? '<span style="position:absolute; top:12px; left:12px; background:#ff4d4d; color:#fff; font-size:0.65rem; padding:4px 8px; border-radius:2px; font-weight:700; letter-spacing:1px; z-index:10;">SOLD OUT</span>' : ''}
+                    <button onclick="event.stopPropagation(); toggleWishlist('${product.id}')" class="wishlist-btn-card ${isWished}" data-product-id="${product.id}" title="Wishlist"><i class="fas fa-heart"></i></button>
                     <span class="zoom-hint"><i class="fas fa-search-plus"></i> ZOOM</span>
                 </div>
                 ${thumbnailsHtml}
                 <div class="product-info">
                     <h3 class="product-title">${product.name}</h3>
                     <p class="product-desc">${product.description || ''}</p>
+                    
+                    <div class="size-selector-container">
+                        <span class="size-label">SELECT SIZE:</span>
+                        <div class="size-options">
+                            <button class="size-btn active" onclick="selectCardSize(this, 'S')">S</button>
+                            <button class="size-btn" onclick="selectCardSize(this, 'M')">M</button>
+                            <button class="size-btn" onclick="selectCardSize(this, 'L')">L</button>
+                            <button class="size-btn" onclick="selectCardSize(this, 'XL')">XL</button>
+                        </div>
+                    </div>
+
+                    <div class="qty-container">
+                        <span class="size-label" style="margin:0;">QTY:</span>
+                        <button class="qty-btn" onclick="changeCardQty(this, -1)">-</button>
+                        <span class="qty-val">1</span>
+                        <button class="qty-btn" onclick="changeCardQty(this, 1)">+</button>
+                    </div>
+
                     <div class="product-footer">
                         <span class="product-price">Rs. ${product.price}</span>
-                        <button onclick="addToCart('${product.id}', '${product.name.replace(/'/g, "\\'")}', ${product.price})" class="secure-btn">ADD TO CART</button>
+                        ${actionBtnHtml}
                     </div>
                 </div>
             `;
             return card;
+        }
+
+        function selectCardSize(btn, size) {
+            const parent = btn.closest('.size-options');
+            parent.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function changeCardQty(btn, delta) {
+            const qtySpan = btn.closest('.qty-container').querySelector('.qty-val');
+            let currentQty = parseInt(qtySpan.innerText);
+            currentQty += delta;
+            if(currentQty < 1) currentQty = 1;
+            qtySpan.innerText = currentQty;
+        }
+
+        function addCardToCart(btn, id, name, price) {
+            const card = btn.closest('.product-card');
+            const selectedSizeBtn = card.querySelector('.size-btn.active');
+            const selectedSize = selectedSizeBtn ? selectedSizeBtn.innerText : 'M';
+            const qty = parseInt(card.querySelector('.qty-val').innerText);
+
+            addToCart(id, name, price, selectedSize, qty);
+        }
+
+        function addToCart(id, name, price, size = 'M', quantity = 1) {
+            const cartItemIndex = cart.findIndex(i => i.id === id && i.size === size);
+            
+            if(cartItemIndex > -1) {
+                cart[cartItemIndex].quantity += quantity;
+            } else {
+                cart.push({
+                    id: id,
+                    name: name,
+                    price: parseFloat(price),
+                    size: size,
+                    quantity: quantity
+                });
+            }
+            
+            localStorage.setItem('treasurer_cart', JSON.stringify(cart));
+            updateCartCount();
+            showToast(`"${name}" (${size}) x${quantity} added to cart!`);
         }
 
         function switchCardImage(thumbElement, newImgSrc) {
@@ -661,23 +879,11 @@
         async function handleUpdateProfile(e) {
             e.preventDefault();
             const newName = document.getElementById('profileName').value.trim();
-            const newPassword = document.getElementById('profilePassword').value.trim();
-
             currentUser.name = newName;
             localStorage.setItem('treasurer_user', JSON.stringify(currentUser));
             renderNavbar();
             toggleProfileModal(false);
             showToast('Profile updated successfully!');
-        }
-
-        function addToCart(id, name, price) {
-            const index = cart.findIndex(i => i.id === id);
-            if(index > -1) cart[index].quantity += 1;
-            else cart.push({ id, name, price: parseFloat(price), quantity: 1 });
-            
-            localStorage.setItem('treasurer_cart', JSON.stringify(cart));
-            updateCartCount();
-            showToast(`"${name}" added to cart!`);
         }
 
         function updateCartCount() {
@@ -695,7 +901,7 @@
                     cartList.innerHTML = cart.map((item, idx) => `
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
                             <div>
-                                <p style="margin:0; font-weight:600;">${item.name} (x${item.quantity})</p>
+                                <p style="margin:0; font-weight:600;">${item.name} <span style="color: var(--gold); font-size: 0.75rem;">[${item.size || 'M'}]</span> (x${item.quantity})</p>
                                 <small style="color: var(--gold);">Rs. ${item.price * item.quantity}</small>
                             </div>
                             <button onclick="removeFromCart(${idx})" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer;"><i class="fas fa-trash"></i></button>
@@ -775,6 +981,7 @@
         function logoutUser() {
             localStorage.removeItem('treasurer_user');
             currentUser = null;
+            userWishlistIds = [];
             renderNavbar();
             showToast('Logged out successfully.');
         }

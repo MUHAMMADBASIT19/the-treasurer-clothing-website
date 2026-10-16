@@ -63,12 +63,17 @@ const User = sequelize.define('User', {
     role: { type: DataTypes.STRING, defaultValue: 'customer' }
 });
 
+// Wishlist Model
+const Wishlist = sequelize.define('Wishlist', {
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    productId: { type: DataTypes.INTEGER, allowNull: false }
+});
+
 // Sync Database
 sequelize.sync().then(() => console.log('Database synced successfully!'));
 
 // --- ROUTES ---
 
-// Login Route (Strict Admin Enforcement)
 app.post('/api/login', async (req, res) => {
     try {
         let { email, password, role } = req.body;
@@ -76,7 +81,6 @@ app.post('/api/login', async (req, res) => {
         email = email ? email.trim().toLowerCase() : '';
         password = password ? password.trim() : '';
 
-        // Force Admin access if email matches or role requested is Admin with correct password
         if ((email === 'admin@treasurer.com' && password === 'admin123') || (role === 'Admin' && password === 'admin123')) {
             return res.json({ 
                 message: 'Login successful',
@@ -106,7 +110,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Register Route
 app.post('/api/register', async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
@@ -147,6 +150,41 @@ app.post('/api/products', upload.array('images'), async (req, res) => {
         res.status(201).json(product);
     } catch (err) {
         res.status(500).json({ error: 'Failed to create product' });
+    }
+});
+
+app.put('/api/products/:id', upload.array('images'), async (req, res) => {
+    try {
+        const { name, price, discountPercent, isSoldOut, description } = req.body;
+        const product = await Product.findByPk(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+
+        let soldOutStatus = product.isSoldOut;
+        if (isSoldOut !== undefined && isSoldOut !== null) {
+            soldOutStatus = (isSoldOut === 'true' || isSoldOut === true || isSoldOut === 'Sold Out (Out of Stock)');
+        }
+
+        let updatedFields = {
+            name: name || product.name,
+            price: price !== undefined ? parseFloat(price) : product.price,
+            discountPercent: discountPercent !== undefined ? parseInt(discountPercent) : product.discountPercent,
+            isSoldOut: soldOutStatus,
+            description: description !== undefined ? description : product.description
+        };
+
+        if (req.files && req.files.length > 0) {
+            const newImages = req.files.map(file => file.path.replace(/\\/g, '/'));
+            updatedFields.images = JSON.stringify(newImages);
+        }
+
+        await product.update(updatedFields);
+        res.json({ message: 'Product updated successfully', product });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update product' });
     }
 });
 
@@ -230,6 +268,42 @@ app.delete('/api/coupons/:id', async (req, res) => {
         await Coupon.destroy({ where: { id: req.params.id } });
         res.json({ message: 'Deleted' });
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.get('/api/wishlist/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const wishlistItems = await Wishlist.findAll({ where: { userId } });
+        const productIds = wishlistItems.map(item => item.productId);
+        const products = await Product.findAll({ where: { id: productIds } });
+        res.json(products);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch wishlist' });
+    }
+});
+
+app.post('/api/wishlist', async (req, res) => {
+    try {
+        const { userId, productId } = req.body;
+        const existing = await Wishlist.findOne({ where: { userId, productId } });
+        if (existing) {
+            return res.status(400).json({ message: 'Product already in wishlist' });
+        }
+        const wishlistItem = await Wishlist.create({ userId, productId });
+        res.status(201).json({ message: 'Added to wishlist', wishlistItem });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to add to wishlist' });
+    }
+});
+
+app.delete('/api/wishlist/:userId/:productId', async (req, res) => {
+    try {
+        const { userId, productId } = req.params;
+        await Wishlist.destroy({ where: { userId, productId } });
+        res.json({ message: 'Removed from wishlist' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update wishlist' });
+    }
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

@@ -3,180 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login / Register | The Treasurer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Login | The Treasurer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-color: #030304;
-            --card-bg: #0d0d11;
+            --bg-color: #010102;
+            --card-bg: rgba(7, 7, 10, 0.92);
             --gold: #d4af37;
+            --gold-light: #f3e5ab;
             --text-main: #ffffff;
-            --text-muted: #8e8e93;
-            --border-color: rgba(255, 255, 255, 0.08);
+            --text-muted: #ababaf;
+            --border-color: rgba(212, 175, 55, 0.3);
+            --transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Enhanced Dark & Clear Watermark Effect */
+        .bg-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 0;
+            user-select: none;
+            pointer-events: none;
+            width: 100%;
+            opacity: 0.12;
+        }
+
+        .bg-watermark h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 7vw;
+            font-weight: 900;
+            letter-spacing: 15px;
+            color: var(--gold);
+            white-space: nowrap;
+            filter: blur(6px);
+            margin-bottom: -10px;
+        }
+
+        .bg-watermark p {
+            font-family: 'Inter', sans-serif;
+            font-size: 2vw;
+            letter-spacing: 12px;
+            color: var(--text-main);
+            text-transform: uppercase;
+            filter: blur(4px);
         }
 
         .auth-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 3rem;
-            border-radius: 4px;
+            border-radius: 8px;
             width: 100%;
-            max-width: 420px;
-            box-sizing: border-box;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 440px;
+            padding: 2.8rem 2.2rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(212, 175, 55, 0.12);
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            z-index: 1;
         }
 
-        .auth-header { text-align: center; margin-bottom: 2rem; }
-        .auth-header h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; letter-spacing: 2px; color: var(--gold); margin: 0 0 0.5rem 0; }
-        .auth-header p { color: var(--text-muted); font-size: 0.85rem; letter-spacing: 1px; margin: 0; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        .input-group { margin-bottom: 1.2rem; }
-        .input-group label { display: block; font-size: 0.75rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
-        .input-group input, .input-group select {
-            width: 100%;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 0.8rem;
-            border-radius: 2px;
-            box-sizing: border-box;
+        .brand-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            letter-spacing: 3px;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .brand-sub {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        .input-group {
+            margin-bottom: 1.4rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.72rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .input-field-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-field-wrapper i {
+            position: absolute;
+            left: 1rem;
+            color: var(--gold);
             font-size: 0.9rem;
         }
-        .input-group input:focus, .input-group select:focus { border-color: var(--gold); outline: none; }
 
-        .auth-btn {
+        .input-group input, .input-group select {
+            width: 100%;
+            background: rgba(1, 1, 2, 0.95);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.85rem 1rem 0.85rem 2.8rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .input-group select {
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .input-group select option {
+            background: #07070a;
+            color: var(--text-main);
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .submit-btn {
+            width: 100%;
             background: var(--gold);
             color: var(--bg-color);
             border: none;
-            width: 100%;
             padding: 0.9rem;
-            font-weight: 600;
-            border-radius: 2px;
+            font-weight: 700;
+            border-radius: 4px;
             cursor: pointer;
-            letter-spacing: 1px;
-            margin-top: 1rem;
-            transition: background 0.3s;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            margin-top: 0.8rem;
         }
-        .auth-btn:hover { background: #fff; }
 
-        .switch-text { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); }
-        .switch-text a { color: var(--gold); text-decoration: none; font-weight: 600; }
-        .switch-text a:hover { text-decoration: underline; }
-        .back-home { display: block; text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.8rem; text-decoration: none; }
-        .back-home:hover { color: #fff; }
+        .submit-btn:hover {
+            background: var(--gold-light);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .auth-footer {
+            margin-top: 1.8rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px dashed rgba(255, 255, 255, 0.15);
+            padding-top: 1.2rem;
+        }
+
+        .auth-footer a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+            color: var(--gold-light);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            letter-spacing: 1px;
+            transition: var(--transition);
+        }
+
+        .back-link:hover { color: var(--gold); }
     </style>
 </head>
 <body>
 
+    <!-- Enhanced Dark Blurry Watermark Effect -->
+    <div class="bg-watermark">
+        <h2>THE TREASURER</h2>
+        <p>WEAR YOUR STORY</p>
+    </div>
+
     <div class="auth-card">
-        <div class="auth-header">
-            <h2 id="form-title">LOGIN</h2>
-            <p id="form-subtitle">Access your Treasurer portal</p>
+        <div class="brand-header">
+            <h1 class="brand-title">THE TREASURER</h1>
+            <p class="brand-sub">Access Your Portal</p>
         </div>
 
-        <form id="auth-form" onsubmit="handleAuth(event)">
-            <div class="input-group" id="name-group" style="display: none;">
-                <label>Full Name</label>
-                <input type="text" id="name" placeholder="Muhammad Basit">
-            </div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
             <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" id="email" placeholder="name@example.com" required>
+                <label for="loginEmail">Email Address</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="loginEmail" placeholder="e.g. ahmedali@gmail.com" required>
+                </div>
             </div>
+
             <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
+                <label for="loginPassword">Password</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
             </div>
+
             <div class="input-group">
-                <label>Portal Role</label>
-                <select id="role">
-                    <option value="customer">Customer</option>
-                    <option value="admin">Admin</option>
-                </select>
+                <label for="loginRole">Portal Role</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-user-shield"></i>
+                    <select id="loginRole">
+                        <option value="Customer">Customer</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
             </div>
-            <button type="submit" class="auth-btn" id="submit-btn">SIGN IN</button>
+
+            <button type="submit" class="submit-btn">SIGN IN</button>
         </form>
 
-        <div class="switch-text">
-            <span id="switch-prompt">Don't have an account?</span> 
-            <a href="#" onclick="toggleMode(event)" id="switch-link">Register here</a>
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="register.html">Register here</a></p>
+            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Storefront</a>
         </div>
-        <a href="index.html" class="back-home">&larr; Back to Storefront</a>
     </div>
 
     <script>
         const API_URL = 'http://localhost:5000/api';
-        let isRegisterMode = false;
 
-        function toggleMode(e) {
+        async function handleLogin(e) {
             e.preventDefault();
-            isRegisterMode = !isRegisterMode;
-            
-            document.getElementById('form-title').innerText = isRegisterMode ? 'REGISTER' : 'LOGIN';
-            document.getElementById('form-subtitle').innerText = isRegisterMode ? 'Create your new account' : 'Access your Treasurer portal';
-            document.getElementById('submit-btn').innerText = isRegisterMode ? 'SIGN UP' : 'SIGN IN';
-            document.getElementById('name-group').style.display = isRegisterMode ? 'block' : 'none';
-            document.getElementById('switch-prompt').innerText = isRegisterMode ? 'Already have an account?' : "Don't have an account?";
-            document.getElementById('switch-link').innerText = isRegisterMode ? 'Login here' : 'Register here';
-        }
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const role = document.getElementById('loginRole').value;
 
-        async function handleAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const role = document.getElementById('role').value;
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, role })
+                });
 
-            if (isRegisterMode) {
-                const name = document.getElementById('name').value;
-                try {
-                    const res = await fetch(`${API_URL}/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password, role })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        alert(data.message);
-                        toggleMode(e);
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('treasurer_token', data.token);
+                    localStorage.setItem('treasurer_user', JSON.stringify(data.user));
+
+                    if (data.user.role === 'Admin') {
+                        window.location.href = 'admin.html';
                     } else {
-                        alert('Error: ' + data.error);
+                        window.location.href = 'index.html';
                     }
-                } catch (err) { alert('Server connection error.'); }
-            } else {
-                try {
-                    const res = await fetch(`${API_URL}/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password, role })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        alert(data.message);
-                        const userRole = data.user.role ? data.user.role.toLowerCase() : '';
-                        
-                        if (userRole === 'admin' || data.user.email === 'admin@treasurer.com') {
-                            data.user.role = 'Admin';
-                            localStorage.setItem('treasurer_user', JSON.stringify(data.user));
-                            window.location.href = 'admin.html';
-                        } else {
-                            localStorage.setItem('treasurer_user', JSON.stringify(data.user));
-                            window.location.href = 'index.html';
-                        }
-                    } else {
-                        alert('Error: ' + (data.error || data.message));
-                    }
-                } catch (err) { alert('Server connection error.'); }
+                } else {
+                    alert(data.message || 'Login failed.');
+                }
+            } catch (err) {
+                alert('Server error during login.');
             }
         }
     </script>
