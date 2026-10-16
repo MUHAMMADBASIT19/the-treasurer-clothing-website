@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | The Treasurer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #010102;
+            --card-bg: rgba(7, 7, 10, 0.92);
+            --gold: #d4af37;
+            --gold-light: #f3e5ab;
+            --text-main: #ffffff;
+            --text-muted: #ababaf;
+            --border-color: rgba(212, 175, 55, 0.3);
+            --transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bg-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 0;
+            user-select: none;
+            pointer-events: none;
+            width: 100%;
+            opacity: 0.12;
+        }
+
+        .bg-watermark h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 7vw;
+            font-weight: 900;
+            letter-spacing: 15px;
+            color: var(--gold);
+            white-space: nowrap;
+            filter: blur(6px);
+            margin-bottom: -10px;
+        }
+
+        .bg-watermark p {
+            font-family: 'Inter', sans-serif;
+            font-size: 2vw;
+            letter-spacing: 12px;
+            color: var(--text-main);
+            text-transform: uppercase;
+            filter: blur(4px);
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 440px;
+            padding: 2.8rem 2.2rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(212, 175, 55, 0.12);
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            letter-spacing: 3px;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .brand-sub {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        .input-group {
+            margin-bottom: 1.4rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.72rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .input-field-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-field-wrapper i {
+            position: absolute;
+            left: 1rem;
+            color: var(--gold);
+            font-size: 0.9rem;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            background: rgba(1, 1, 2, 0.95);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.85rem 1rem 0.85rem 2.8rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .input-group select {
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .input-group select option {
+            background: #07070a;
+            color: var(--text-main);
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--gold);
+            color: var(--bg-color);
+            border: none;
+            padding: 0.9rem;
+            font-weight: 700;
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            margin-top: 0.8rem;
+        }
+
+        .submit-btn:hover {
+            background: var(--gold-light);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .auth-footer {
+            margin-top: 1.8rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px dashed rgba(255, 255, 255, 0.15);
+            padding-top: 1.2rem;
+        }
+
+        .auth-footer a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+            color: var(--gold-light);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            letter-spacing: 1px;
+            transition: var(--transition);
+        }
+
+        .back-link:hover { color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <div class="bg-watermark">
+        <h2>THE TREASURER</h2>
+        <p>WEAR YOUR STORY</p>
+    </div>
+
+    <div class="auth-card">
+        <div class="brand-header">
+            <h1 class="brand-title">THE TREASURER</h1>
+            <p class="brand-sub">Create New Account</p>
+        </div>
+
+        <form id="registerForm" onsubmit="handleRegister(event)">
+            <div class="input-group">
+                <label for="regName">Full Name</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="regName" placeholder="e.g. Muhammad Basit" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="regEmail">Email Address</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="regEmail" placeholder="e.g. basit@gmail.com" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="regPassword">Password</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="regPassword" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="regRole">Portal Role</label>
+                <div class="input-field-wrapper">
+                    <i class="fas fa-user-shield"></i>
+                    <select id="regRole">
+                        <option value="customer">Customer</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">REGISTER</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="login.html">Sign in here</a></p>
+            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Storefront</a>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+            const role = document.getElementById('regRole').value;
+
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, role })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Registration successful! Please check your VS Code terminal console for the verification link to verify your email before logging in.');
+                    window.location.href = 'login.html';
+                } else {
+                    alert(data.message || 'Registration failed.');
+                }
+            } catch (err) {
+                alert('Server connection error during registration.');
+            }
+        }
+    </script>
+</body>
+</html>
