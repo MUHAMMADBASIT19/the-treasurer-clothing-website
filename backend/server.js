@@ -177,7 +177,7 @@ app.get('/api/verify-email/:token', async (req, res) => {
     }
 });
 
-// LOGIN ROUTE WITH VERIFICATION CHECK
+// LOGIN ROUTE WITH ROLE & VERIFICATION CHECK
 app.post('/api/login', async (req, res) => {
     try {
         let { email, password, role } = req.body;
@@ -185,17 +185,28 @@ app.post('/api/login', async (req, res) => {
         email = email ? email.trim().toLowerCase() : '';
         password = password ? password.trim() : '';
 
-        if ((email === 'admin@treasurer.com' && password === 'admin123') || (role === 'Admin' && password === 'admin123')) {
-            return res.json({ 
-                message: 'Login successful',
-                token: 'mock-admin-token-12345',
-                user: { id: 1, name: 'Admin', email: 'admin@treasurer.com', role: 'Admin', isVerified: true } 
-            });
+        // Check if user is trying to login as Admin
+        if (role === 'Admin' || role === 'admin') {
+            if ((email === 'admin@treasurer.com' && password === 'admin123') || password === 'admin123') {
+                return res.json({ 
+                    message: 'Login successful',
+                    token: 'mock-admin-token-12345',
+                    user: { id: 1, name: 'Admin', email: 'admin@treasurer.com', role: 'Admin', isVerified: true } 
+                });
+            } else {
+                return res.status(401).json({ message: 'Invalid Admin credentials' });
+            }
         }
 
+        // If role is Customer (or anything else), check in User database
         const user = await User.findOne({ where: { email } });
         if (!user || user.password !== password) {
             return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Prevent logging into customer portal if role mismatch
+        if (user.role === 'Admin') {
+            return res.status(403).json({ message: 'Admin credentials cannot be used under Customer role. Please select Admin role.' });
         }
 
         if (!user.isVerified) {
@@ -247,7 +258,7 @@ app.put('/api/products/:id', upload.array('images'), async (req, res) => {
         }
 
         let updatedFields = {
-            name: name || product.name,
+            name: name !== undefined ? name : product.name,
             price: price !== undefined ? parseFloat(price) : product.price,
             discountPercent: discountPercent !== undefined ? parseInt(discountPercent) : product.discountPercent,
             isSoldOut: soldOutStatus,
@@ -261,7 +272,10 @@ app.put('/api/products/:id', upload.array('images'), async (req, res) => {
 
         await product.update(updatedFields);
         res.json({ message: 'Product updated successfully', product });
-    } catch (err) { res.status(500).json({ error: 'Failed to update product' }); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update product' }); 
+    }
 });
 
 app.delete('/api/products/:id', async (req, res) => {

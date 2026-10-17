@@ -214,10 +214,24 @@
         .zoom-hint { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: var(--gold); font-size: 0.7rem; padding: 4px 8px; border-radius: 2px; letter-spacing: 1px; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; }
         .product-img-box:hover .zoom-hint { opacity: 1; }
 
-        .wishlist-btn-card {
+        .badge-sale {
             position: absolute;
             top: 12px;
             right: 12px;
+            background: #e63946;
+            color: #fff;
+            padding: 4px 10px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            border-radius: 2px;
+            z-index: 10;
+        }
+
+        .wishlist-btn-card {
+            position: absolute;
+            top: 12px;
+            left: 12px;
             background: rgba(3, 3, 4, 0.8);
             border: 1px solid var(--border-color);
             color: var(--text-muted);
@@ -257,6 +271,8 @@
         .product-desc { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.2rem; line-height: 1.5; white-space: pre-line; }
         
         .product-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.2rem; }
+        .price-box { display: flex; align-items: center; gap: 8px; }
+        .old-price { text-decoration: line-through; color: var(--text-muted); font-size: 0.8rem; }
         .product-price { font-family: 'Cinzel', serif; font-size: 1.25rem; font-weight: 700; color: var(--gold); }
         
         .secure-btn { background: var(--gold); color: var(--bg-color); border: none; padding: 0.65rem 1.4rem; font-weight: 600; border-radius: 2px; cursor: pointer; letter-spacing: 1px; font-size: 0.8rem; transition: var(--transition); }
@@ -516,7 +532,8 @@
             fetchCatalogProducts();
             updateCartCount();
             setupZoomEvents();
-            if(currentUser && currentUser.id) {
+            startCountdown();
+            if(currentUser && currentUser.id && currentUser.role !== 'Admin') {
                 fetchWishlist();
             }
         });
@@ -553,7 +570,7 @@
             const container = document.getElementById('nav-actions-container');
             currentUser = JSON.parse(localStorage.getItem('treasurer_user'));
 
-            if (currentUser && currentUser.name) {
+            if (currentUser && currentUser.name && currentUser.role !== 'Admin') {
                 container.innerHTML = `
                     <button class="nav-btn" onclick="toggleWishlistModal(true)">
                         <i class="fas fa-heart" style="color: #ff4d4d;"></i> Wishlist <span class="cart-count" id="wishlist-badge" style="position:relative; top:0; right:0; margin-left:4px; display:inline-block;">0</span>
@@ -574,7 +591,7 @@
                     <button class="cart-icon-btn" onclick="toggleCartModal(true)">
                         <i class="fas fa-shopping-bag"></i> Cart <span class="cart-count" id="cart-badge">0</span>
                     </button>
-                    <button onclick="window.location.href='login.html'" class="nav-btn"><i class="fas fa-lock"></i> ADMIN / LOGIN</button>
+                    <button onclick="window.location.href='login.html'" class="nav-btn"><i class="fas fa-user"></i> LOGIN / REGISTER</button>
                 `;
             }
         }
@@ -588,7 +605,7 @@
         }
 
         async function fetchWishlist() {
-            if(!currentUser || !currentUser.id) return;
+            if(!currentUser || !currentUser.id || currentUser.role === 'Admin') return;
             try {
                 const res = await fetch(`${API_URL}/wishlist/${currentUser.id}`);
                 const data = await res.json();
@@ -614,8 +631,8 @@
         }
 
         async function toggleWishlist(productId) {
-            if(!currentUser || !currentUser.id) {
-                alert('Please login first to manage your wishlist.');
+            if(!currentUser || !currentUser.id || currentUser.role === 'Admin') {
+                alert('Please login as Customer to manage your wishlist.');
                 window.location.href = 'login.html';
                 return;
             }
@@ -644,8 +661,8 @@
         async function toggleWishlistModal(show) {
             const modal = document.getElementById('wishlistModal');
             if(show) {
-                if(!currentUser || !currentUser.id) {
-                    alert('Please login to view your wishlist.');
+                if(!currentUser || !currentUser.id || currentUser.role === 'Admin') {
+                    alert('Please login as Customer to view your wishlist.');
                     window.location.href = 'login.html';
                     return;
                 }
@@ -661,14 +678,17 @@
                             let images = [];
                             try { images = JSON.parse(prod.images); } catch(e) { images = [prod.image]; }
                             const imgUrl = images[0].startsWith('http') ? images[0] : `http://localhost:5000/${images[0]}`;
+                            const hasDiscount = prod.discountPercent && prod.discountPercent > 0;
+                            const finalPrice = hasDiscount ? (prod.price - (prod.price * (prod.discountPercent / 100))).toFixed(0) : prod.price;
+                            
                             return `
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.8rem; gap: 10px;">
                                     <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: contain; background: #000; border-radius: 2px;">
                                     <div style="flex: 1;">
                                         <p style="margin:0; font-weight:600; font-size: 0.9rem;">${prod.name}</p>
-                                        <small style="color: var(--gold);">Rs. ${prod.price}</small>
+                                        <small style="color: var(--gold);">Rs. ${finalPrice}</small>
                                     </div>
-                                    <button onclick="addToCart('${prod.id}', '${prod.name.replace(/'/g, "\\'")}', ${prod.price}, 'M', 1); toggleWishlist(${prod.id}); toggleWishlistModal(true);" class="secure-btn" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;">MOVE TO CART</button>
+                                    <button onclick="addToCart('${prod.id}', '${prod.name.replace(/'/g, "\\'")}', ${finalPrice}, 'M', 1); toggleWishlist(${prod.id}); toggleWishlistModal(true);" class="secure-btn" style="padding: 0.4rem 0.8rem; font-size: 0.7rem;">MOVE TO CART</button>
                                     <button onclick="toggleWishlist(${prod.id}); toggleWishlistModal(true);" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer;"><i class="fas fa-trash"></i></button>
                                 </div>
                             `;
@@ -743,6 +763,11 @@
             const isWished = userWishlistIds.includes(product.id) ? 'active' : '';
             const isSoldOut = product.isSoldOut === true || product.isSoldOut === 'true';
 
+            const hasDiscount = product.discountPercent && product.discountPercent > 0;
+            const finalPrice = hasDiscount 
+                ? (product.price - (product.price * (product.discountPercent / 100))).toFixed(0)
+                : product.price;
+
             const card = document.createElement('div');
             card.className = 'product-card';
             card.setAttribute('data-id', product.id);
@@ -761,12 +786,13 @@
 
             const actionBtnHtml = isSoldOut 
                 ? `<button class="secure-btn" style="background: #444; color: #888; cursor: not-allowed;" disabled>SOLD OUT</button>`
-                : `<button onclick="addCardToCart(this, '${product.id}', '${product.name.replace(/'/g, "\\'")}', ${product.price})" class="secure-btn">ADD TO CART</button>`;
+                : `<button onclick="addCardToCart(this, '${product.id}', '${product.name.replace(/'/g, "\\'")}', ${finalPrice})" class="secure-btn">ADD TO CART</button>`;
 
             card.innerHTML = `
                 <div class="product-img-box" onclick="openZoomModal('${mainImgUrl}', '${product.name.replace(/'/g, "\\'")}', '${(product.description || '').replace(/'/g, "\\'")}')">
                     <img src="${mainImgUrl}" alt="${product.name}" class="card-main-img">
                     ${isSoldOut ? '<span style="position:absolute; top:12px; left:12px; background:#ff4d4d; color:#fff; font-size:0.65rem; padding:4px 8px; border-radius:2px; font-weight:700; letter-spacing:1px; z-index:10;">SOLD OUT</span>' : ''}
+                    ${hasDiscount ? `<span class="badge-sale">SALE ${product.discountPercent}% OFF</span>` : ''}
                     <button onclick="event.stopPropagation(); toggleWishlist('${product.id}')" class="wishlist-btn-card ${isWished}" data-product-id="${product.id}" title="Wishlist"><i class="fas fa-heart"></i></button>
                     <span class="zoom-hint"><i class="fas fa-search-plus"></i> ZOOM</span>
                 </div>
@@ -793,7 +819,14 @@
                     </div>
 
                     <div class="product-footer">
-                        <span class="product-price">Rs. ${product.price}</span>
+                        <div class="price-box">
+                            ${hasDiscount ? `
+                                <span class="old-price">Rs. ${product.price}</span>
+                                <span class="product-price">Rs. ${finalPrice}</span>
+                            ` : `
+                                <span class="product-price">Rs. ${product.price}</span>
+                            `}
+                        </div>
                         ${actionBtnHtml}
                     </div>
                 </div>
@@ -984,6 +1017,30 @@
             userWishlistIds = [];
             renderNavbar();
             showToast('Logged out successfully.');
+        }
+
+        function startCountdown() {
+            let countDownDate = new Date().getTime() + (3 * 24 * 60 * 60 * 1000);
+
+            setInterval(() => {
+                let now = new Date().getTime();
+                let distance = countDownDate - now;
+
+                if (distance < 0) {
+                    countDownDate = new Date().getTime() + (3 * 24 * 60 * 60 * 1000);
+                    distance = countDownDate - now;
+                }
+
+                let days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                document.getElementById("days").innerText = String(days).padStart(2, '0');
+                document.getElementById("hours").innerText = String(hours).padStart(2, '0');
+                document.getElementById("minutes").innerText = String(minutes).padStart(2, '0');
+                document.getElementById("seconds").innerText = String(seconds).padStart(2, '0');
+            }, 1000);
         }
     </script>
 </body>

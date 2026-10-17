@@ -50,6 +50,7 @@
         .collections-table img { width: 50px; height: 50px; object-fit: cover; border-radius: 2px; margin-right: 4px; }
         .soldout-badge { background: #e74c3c; color: #fff; padding: 3px 8px; border-radius: 2px; font-size: 0.75rem; font-weight: 700; }
         .instock-badge { background: #2ecc71; color: #fff; padding: 3px 8px; border-radius: 2px; font-size: 0.75rem; font-weight: 700; }
+        .sale-badge { background: #e63946; color: #fff; padding: 2px 6px; border-radius: 2px; font-size: 0.65rem; font-weight: 700; margin-left: 6px; }
 
         .action-btns { display: flex; gap: 0.8rem; }
         .edit-btn { background: #2f3542; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 2px; cursor: pointer; }
@@ -346,7 +347,17 @@
                     if (imagesArr.length === 0) imagesArr = [product.image];
 
                     const imgTags = imagesArr.map(img => `<img src="http://localhost:5000/${img}">`).join('');
-                    const formattedPrice = `Rs. ${Number(product.price).toLocaleString()}`;
+                    
+                    // Sale & Discount calculations for Admin table
+                    const hasDiscount = product.discountPercent && product.discountPercent > 0;
+                    const finalPrice = hasDiscount 
+                        ? (product.price - (product.price * (product.discountPercent / 100))).toFixed(0)
+                        : product.price;
+
+                    const formattedPrice = hasDiscount 
+                        ? `<span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.8rem;">Rs. ${Number(product.price).toLocaleString()}</span><br><span style="color: var(--gold);">${Number(finalPrice).toLocaleString()}</span><span class="sale-badge">${product.discountPercent}% OFF</span>`
+                        : `Rs. ${Number(product.price).toLocaleString()}`;
+
                     const stockTag = product.isSoldOut 
                         ? `<span class="soldout-badge">SOLD OUT</span>` 
                         : `<span class="instock-badge">IN STOCK</span>`;
@@ -356,7 +367,7 @@
                         <td><div style="display:flex;">${imgTags}</div></td>
                         <td style="font-weight: 600; color: #fff;">${product.name}</td>
                         <td style="color: var(--text-muted); max-width: 300px; font-size: 0.8rem;">${product.description || '-'}</td>
-                        <td style="color: var(--gold); font-family: 'Cinzel', serif; font-weight: 700;">${formattedPrice}</td>
+                        <td style="font-family: 'Cinzel', serif; font-weight: 700;">${formattedPrice}</td>
                         <td>${stockTag}</td>
                         <td>
                             <div class="action-btns">
@@ -393,7 +404,6 @@
                     return;
                 }
 
-                // Robust loop with individual item safety to prevent rendering crashes
                 orders.forEach(order => {
                     let itemsArr = [];
                     try {
@@ -494,7 +504,7 @@
             if (!product) return;
             document.getElementById('edit-id').value = product.id;
             document.getElementById('edit-title').value = product.name;
-            document.getElementById('edit-price').value = product.originalPrice || product.price;
+            document.getElementById('edit-price').value = product.price;
             document.getElementById('edit-discount').value = product.discountPercent || 0;
             document.getElementById('edit-desc').value = product.description || '';
             document.getElementById('edit-soldout').value = product.isSoldOut ? 'true' : 'false';
