@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Order | The Treasurer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #030304;
+            --card-bg: #0d0d11;
+            --gold: #d4af37;
+            --text-main: #ffffff;
+            --text-muted: #8e8e93;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 6%; border-bottom: 1px solid var(--border-color); background: rgba(3, 3, 4, 0.95); }
+        .brand-name { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 2px; color: var(--text-main); display: block; }
+        .brand-slogan { font-size: 0.7rem; letter-spacing: 3px; color: var(--gold); display: block; margin-top: 2px; }
+
+        .container { max-width: 600px; margin: 4rem auto; padding: 0 6%; text-align: center; }
+        h2 { font-family: 'Cinzel', serif; font-size: 2rem; letter-spacing: 2px; color: var(--gold); margin-bottom: 1rem; }
+        p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+        .track-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 2.5rem; border-radius: 4px; }
+        .input-group { margin-bottom: 1.5rem; text-align: left; }
+        .input-group label { display: block; font-size: 0.75rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .input-group input { width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.9rem; border-radius: 2px; box-sizing: border-box; font-family: inherit; font-size: 1rem; }
+        .input-group input:focus { border-color: var(--gold); outline: none; }
+
+        .track-btn { background: var(--gold); color: var(--bg-color); border: none; padding: 0.9rem 2rem; font-weight: 600; border-radius: 2px; cursor: pointer; letter-spacing: 1px; width: 100%; font-size: 0.9rem; }
+        .track-btn:hover { background: #fff; }
+
+        .result-card { margin-top: 2.5rem; background: var(--card-bg); border: 1px solid var(--gold); padding: 2rem; border-radius: 4px; text-align: left; display: none; }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.8rem; font-size: 0.9rem; }
+        .status-badge { padding: 4px 10px; border-radius: 2px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; }
+        .status-pending { background: #f39c12; color: #000; }
+        .status-dispatched { background: #3498db; color: #fff; }
+        .status-delivered { background: #2ecc71; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo-area">
+            <a href="index.html" style="text-decoration:none;">
+                <span class="span brand-name">THE TREASURER</span>
+                <span class="brand-slogan">ORDER TRACKING</span>
+            </a>
+        </div>
+        <a href="index.html" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem;"><i class="fas fa-arrow-left"></i> Back to Store</a>
+    </header>
+
+    <div class="container">
+        <h2>TRACK YOUR ORDER</h2>
+        <p>Enter your Order ID below to check live shipping status.</p>
+
+        <div class="track-box">
+            <form onsubmit="trackOrder(event)">
+                <div class="input-group">
+                    <label>Order ID</label>
+                    <input type="number" id="orderIdInput" placeholder="e.g. 1, 2, 3..." required>
+                </div>
+                <button type="submit" class="track-btn">CHECK STATUS</button>
+            </form>
+
+            <div class="result-card" id="resultCard">
+                <h3 style="font-family: 'Cinzel', serif; color: var(--gold); margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">ORDER DETAILS</h3>
+                <div class="result-row">
+                    <span style="color: var(--text-muted);">Order ID:</span>
+                    <strong id="resId" style="color: var(--gold);"></strong>
+                </div>
+                <div class="result-row">
+                    <span style="color: var(--text-muted);">Customer Name:</span>
+                    <span id="resName"></span>
+                </div>
+                <div class="result-row">
+                    <span style="color: var(--text-muted);">City / Address:</span>
+                    <span id="resLocation"></span>
+                </div>
+                <div class="result-row">
+                    <span style="color: var(--text-muted);">Total Amount:</span>
+                    <span id="resAmount" style="font-family: 'Cinzel', serif; font-weight: 700;"></span>
+                </div>
+                <div class="result-row" style="border-bottom: none; margin-bottom: 0;">
+                    <span style="color: var(--text-muted);">Current Status:</span>
+                    <span id="resStatus"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        async function trackOrder(e) {
+            e.preventDefault();
+            const orderId = document.getElementById('orderIdInput').value;
+            const resultCard = document.getElementById('resultCard');
+
+            try {
+                const res = await fetch(`${API_URL}/orders/track/${orderId}`);
+                const data = await res.json();
+
+                if (res.ok) {
+                    resultCard.style.display = 'block';
+                    document.getElementById('resId').innerText = `#${data.id}`;
+                    document.getElementById('resName').innerText = data.customerName || 'N/A';
+                    document.getElementById('resLocation').innerText = `${data.city || 'N/A'} (${data.address || 'N/A'})`;
+                    document.getElementById('resAmount').innerText = `Rs. ${Number(data.totalAmount).toLocaleString()}`;
+                    
+                    const statusBadge = document.getElementById('resStatus');
+                    let badgeClass = 'status-pending';
+                    if (data.status === 'Dispatched') badgeClass = 'status-dispatched';
+                    if (data.status === 'Delivered') badgeClass = 'status-delivered';
+
+                    statusBadge.innerHTML = `<span class="status-badge ${badgeClass}">${data.status}</span>`;
+                } else {
+                    resultCard.style.display = 'none';
+                    alert(data.error || 'Order not found.');
+                }
+            } catch (err) {
+                alert('Server connection error.');
+            }
+        }
+    </script>
+</body>
+</html>

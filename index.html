@@ -392,6 +392,15 @@
             <div class="catalog-header"><h2>ALL ACTIVE DROPS</h2><p>Full inventory of all exclusive limited releases.</p></div>
             <div class="product-grid" id="product-grid"></div>
         </section>
+
+        <!-- RECENTLY VIEWED SECTION -->
+        <section class="category-section" id="recently-viewed-section" style="display:none; border-top: 1px solid var(--border-color); padding-top: 3rem;">
+            <div class="catalog-header">
+                <h2>RECENTLY VIEWED</h2>
+                <p>Products you have checked out during your session.</p>
+            </div>
+            <div class="product-grid" id="grid-recently-viewed"></div>
+        </section>
     </main>
 
     <!-- ZOOM MODAL FOR IMAGES -->
@@ -526,6 +535,7 @@
         let currentUser = JSON.parse(localStorage.getItem('treasurer_user')) || null;
         let globalProducts = [];
         let userWishlistIds = [];
+        let recentlyViewedIds = JSON.parse(localStorage.getItem('treasurer_recent')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
             renderNavbar();
@@ -601,6 +611,7 @@
                 const response = await fetch(`${API_URL}/products`);
                 globalProducts = await response.json();
                 renderFilteredProducts(globalProducts);
+                renderRecentlyViewed();
             } catch (err) { console.error(err); }
         }
 
@@ -762,6 +773,12 @@
             const mainImgUrl = images[0].startsWith('http') ? images[0] : `http://localhost:5000/${images[0]}`;
             const isWished = userWishlistIds.includes(product.id) ? 'active' : '';
             const isSoldOut = product.isSoldOut === true || product.isSoldOut === 'true';
+            
+            // Live Stock & Urgency Tag implementation
+            const stockCount = product.stockCount !== undefined ? product.stockCount : 3;
+            const urgencyHtml = (!isSoldOut && stockCount <= 4) 
+                ? `<div style="color: #ff4d4d; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.8rem; letter-spacing: 0.5px;"><i class="fas fa-fire" style="color: #ff4d4d;"></i> Only ${stockCount} left in stock - order soon!</div>` 
+                : '';
 
             const hasDiscount = product.discountPercent && product.discountPercent > 0;
             const finalPrice = hasDiscount 
@@ -771,6 +788,11 @@
             const card = document.createElement('div');
             card.className = 'product-card';
             card.setAttribute('data-id', product.id);
+            
+            // Track Recently Viewed on click/interaction
+            card.addEventListener('click', () => {
+                trackRecentlyViewed(product.id);
+            });
             
             let thumbnailsHtml = '';
             if(images.length > 1) {
@@ -800,6 +822,7 @@
                 <div class="product-info">
                     <h3 class="product-title">${product.name}</h3>
                     <p class="product-desc">${product.description || ''}</p>
+                    ${urgencyHtml}
                     
                     <div class="size-selector-container">
                         <span class="size-label">SELECT SIZE:</span>
@@ -832,6 +855,34 @@
                 </div>
             `;
             return card;
+        }
+
+        // Recently Viewed Functions
+        function trackRecentlyViewed(productId) {
+            const numericId = parseInt(productId);
+            if (!recentlyViewedIds.includes(numericId)) {
+                recentlyViewedIds.unshift(numericId);
+                if (recentlyViewedIds.length > 4) recentlyViewedIds.pop();
+                localStorage.setItem('treasurer_recent', JSON.stringify(recentlyViewedIds));
+                renderRecentlyViewed();
+            }
+        }
+
+        function renderRecentlyViewed() {
+            const section = document.getElementById('recently-viewed-section');
+            const grid = document.getElementById('grid-recently-viewed');
+            if (!section || !grid) return;
+
+            const recentProducts = globalProducts.filter(p => recentlyViewedIds.includes(parseInt(p.id)));
+            if (recentProducts.length > 0) {
+                section.style.display = 'block';
+                grid.innerHTML = '';
+                recentProducts.forEach(p => {
+                    grid.appendChild(createProductCard(p));
+                });
+            } else {
+                section.style.display = 'none';
+            }
         }
 
         function selectCardSize(btn, size) {
@@ -1042,6 +1093,22 @@
                 document.getElementById("seconds").innerText = String(seconds).padStart(2, '0');
             }, 1000);
         }
+    </script>
+    <!-- Baaki saara website ka content aur scripts -->
+    <!-- WhatsApp Quick Chat Widget -->
+    <div id="whatsapp-widget" style="position: fixed; bottom: 25px; right: 25px; z-index: 9999; display: flex; align-items: center; cursor: pointer; background: #25d366; color: white; padding: 12px 18px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: sans-serif; text-decoration: none;" onclick="openWhatsApp()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+            <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.57 6.57 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.558 6.558 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.012-.304.087-.403.088-.088.197-.232.296-.347.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34l-.38-.007c-.133 0-.348.05-.53.247-.183.198-.703.687-.703 1.676 0 .99.722 1.948.822 2.081.1.134 1.417 2.16 3.435 3.031.481.208.856.332 1.148.425.485.156.927.133 1.277.08.39-.06 1.17-.478 1.335-.94.165-.465.165-.864.115-.948-.05-.084-.182-.133-.379-.232z"/>
+        </svg>
+        <span style="font-weight: bold; font-size: 14px;">Chat with us</span>
+    </div>
+    
+    <script>
+    function openWhatsApp() {
+        const phoneNumber = "923482346600"; 
+        const message = "Hi, I want to inquire about drops on The Treasurer.";
+        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+    }
     </script>
 </body>
 </html>

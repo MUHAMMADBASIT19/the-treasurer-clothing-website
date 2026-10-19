@@ -43,6 +43,7 @@ const Product = sequelize.define('Product', {
     price: { type: DataTypes.FLOAT, allowNull: false },
     discountPercent: { type: DataTypes.INTEGER, defaultValue: 0 },
     isSoldOut: { type: DataTypes.BOOLEAN, defaultValue: false },
+    stockCount: { type: DataTypes.INTEGER, defaultValue: 3 },
     description: { type: DataTypes.TEXT },
     images: { type: DataTypes.TEXT }
 });
@@ -83,7 +84,7 @@ const Wishlist = sequelize.define('Wishlist', {
 });
 
 // Sync Database
-sequelize.sync().then(() => console.log('Database synced successfully!'));
+sequelize.sync({ alter: true }).then(() => console.log('Database synced successfully!'));
 
 // --- ROUTES ---
 
@@ -204,7 +205,6 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // Prevent logging into customer portal if role mismatch
         if (user.role === 'Admin') {
             return res.status(403).json({ message: 'Admin credentials cannot be used under Customer role. Please select Admin role.' });
         }
@@ -234,21 +234,27 @@ app.get('/api/products', async (req, res) => {
 
 app.post('/api/products', upload.array('images'), async (req, res) => {
     try {
-        const { name, price, discountPercent, isSoldOut, description } = req.body;
+        const { name, price, discountPercent, isSoldOut, stockCount, description } = req.body;
         const imagePaths = req.files ? req.files.map(file => file.path.replace(/\\/g, '/')) : [];
         const product = await Product.create({
-            name, price: parseFloat(price),
+            name, 
+            price: parseFloat(price),
             discountPercent: parseInt(discountPercent) || 0,
-            isSoldOut: isSoldOut === 'true', description,
+            isSoldOut: isSoldOut === 'true' || isSoldOut === true, 
+            stockCount: stockCount !== undefined && stockCount !== '' ? parseInt(stockCount) : 3,
+            description,
             images: JSON.stringify(imagePaths)
         });
         res.status(201).json(product);
-    } catch (err) { res.status(500).json({ error: 'Failed to create product' }); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).json({ error: 'Failed to create product' }); 
+    }
 });
 
 app.put('/api/products/:id', upload.array('images'), async (req, res) => {
     try {
-        const { name, price, discountPercent, isSoldOut, description } = req.body;
+        const { name, price, discountPercent, isSoldOut, stockCount, description } = req.body;
         const product = await Product.findByPk(req.params.id);
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
@@ -262,6 +268,7 @@ app.put('/api/products/:id', upload.array('images'), async (req, res) => {
             price: price !== undefined ? parseFloat(price) : product.price,
             discountPercent: discountPercent !== undefined ? parseInt(discountPercent) : product.discountPercent,
             isSoldOut: soldOutStatus,
+            stockCount: stockCount !== undefined && stockCount !== '' ? parseInt(stockCount) : product.stockCount,
             description: description !== undefined ? description : product.description
         };
 
@@ -285,12 +292,48 @@ app.delete('/api/products/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// COUPONS ROUTES
+app.get('/api/coupons', async (req, res) => {
+    try {
+        const coupons = await Coupon.findAll({ order: [['createdAt', 'DESC']] });
+        res.json(coupons);
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.post('/api/coupons', async (req, res) => {
+    try {
+        const { code, discountPercent } = req.body;
+        const coupon = await Coupon.create({ code: code.toUpperCase(), discountPercent: parseInt(discountPercent) });
+        res.status(201).json(coupon);
+    } catch (err) { res.status(400).json({ error: 'Coupon code already exists' }); }
+});
+
+app.delete('/api/coupons/:id', async (req, res) => {
+    try {
+        await Coupon.destroy({ where: { id: req.params.id } });
+        res.json({ message: 'Coupon deleted' });
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
 // ORDERS ROUTES
 app.get('/api/orders', async (req, res) => {
     try {
         const orders = await Order.findAll({ order: [['createdAt', 'DESC']] });
         res.json(orders);
     } catch (err) { res.status(500).json({ error: 'Failed to fetch orders' }); }
+});
+
+// TRACK ORDER ENDPOINT
+app.get('/api/orders/track/:id', async (req, res) => {
+    try {
+        const order = await Order.findByPk(req.params.id);
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found with this ID' });
+        }
+        res.json(order);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 app.post('/api/orders', async (req, res) => {
@@ -309,6 +352,29 @@ app.post('/api/orders', async (req, res) => {
         });
         res.status(201).json(newOrder);
     } catch (err) { res.status(500).json({ error: 'Failed to place order' }); }
+});
+
+app.put('/api/orders/:id', async (req, res) => {
+    try {
+        const { status } = req.body;
+        const order = await Order.findByPk(req.params.id);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        order.status = status || order.status;
+        await order.save();
+        res.json({ message: 'Order status updated successfully', order });
+    } catch (err) { res.status(500).json({ error: 'Failed to update order status' }); }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+    try {
+        const deleted = await Order.destroy({ where: { id: req.params.id } });
+        if (deleted) {
+            res.json({ message: 'Order deleted successfully' });
+        } else {
+            res.status(404).json({ error: 'Order not found' });
+        }
+    } catch (err) { res.status(500).json({ error: 'Failed to delete order' }); }
 });
 
 // WISHLIST ROUTES

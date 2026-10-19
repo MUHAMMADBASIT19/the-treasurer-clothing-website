@@ -348,7 +348,6 @@
 
                     const imgTags = imagesArr.map(img => `<img src="http://localhost:5000/${img}">`).join('');
                     
-                    // Sale & Discount calculations for Admin table
                     const hasDiscount = product.discountPercent && product.discountPercent > 0;
                     const finalPrice = hasDiscount 
                         ? (product.price - (product.price * (product.discountPercent / 100))).toFixed(0)
