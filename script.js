@@ -2,6 +2,7 @@ const API_URL = 'http://localhost:5000/api';
 
 // Cart State Management
 let cart = JSON.parse(localStorage.getItem('treasurer_cart')) || [];
+let appliedDiscountPercent = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
@@ -30,27 +31,31 @@ async function loadProducts() {
         }
 
         data.forEach(product => {
-            const imageUrl = product.image.startsWith('http') 
+            const imageUrl = product.image && product.image.startsWith('http') 
                 ? product.image 
-                : `http://localhost:5000/${product.image}`;
+                : `http://localhost:5000/${product.image || ''}`;
 
             const productCard = `
                 <div class="product-card">
-                    <div class="product-img-box">
+                    <div class="product-img-box zoom-container">
                         <img src="${imageUrl}" alt="${product.name}">
                     </div>
-                    <div class="product-info">
+                    <div class="product-info product-details">
                         <h3 class="product-title">${product.name}</h3>
                         <p class="product-desc">${product.description || ''}</p>
-                        <div class="product-footer">
-                            <span class="product-price">Rs. ${product.price}</span>
-                            <button onclick="addToCart('${product.id}', '${product.name.replace(/'/g, "\\'")}', ${product.price})" class="secure-btn">ADD TO CART</button>
+                        <div class="product-footer price-row">
+                            <span class="product-price price">Rs. ${product.price}</span>
+                            <button onclick="addToCart('${product.id}', '${product.name.replace(/'/g, "\\'")}', ${product.price})" class="secure-btn add-to-cart-btn">ADD TO CART</button>
                         </div>
                     </div>
                 </div>
             `;
             gridContainer.innerHTML += productCard;
         });
+
+        // Initialize Image Zoom Effect after loading products
+        initImageZoom();
+
     } catch (err) {
         console.error('Error loading products:', err);
         const gridContainer = document.getElementById('product-grid');
@@ -58,6 +63,30 @@ async function loadProducts() {
             gridContainer.innerHTML = '<p style="color: red;">Failed to connect to backend server.</p>';
         }
     }
+}
+
+// Image Zoom Effect on Mouse Move
+function initImageZoom() {
+    const zoomContainers = document.querySelectorAll('.zoom-container, .product-image-container');
+    
+    zoomContainers.forEach(container => {
+        const img = container.querySelector('img');
+        if (!img) return;
+
+        container.addEventListener('mousemove', (e) => {
+            const rect = container.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / container.offsetWidth) * 100;
+            const y = ((e.clientY - rect.top) / container.offsetHeight) * 100;
+            
+            img.style.transformOrigin = `${x}% ${y}%`;
+            img.style.transform = "scale(2)";
+        });
+
+        container.addEventListener('mouseleave', () => {
+            img.style.transformOrigin = "center center";
+            img.style.transform = "scale(1)";
+        });
+    });
 }
 
 // Add Item to Cart
@@ -102,7 +131,7 @@ function updateCartUI() {
     }
 
     if (totalPriceEl) {
-        totalPriceEl.innerText = `Rs. ${calculateTotal()}`;
+        totalPriceEl.innerText = `Rs. ${calculateTotal().toFixed(0)}`;
     }
 }
 
@@ -112,12 +141,67 @@ function removeFromCart(index) {
     updateCartUI();
 }
 
+// COUPON APPLY FUNCTION (Backend + Fallback Support)
+async function applyCoupon() {
+    const couponInput = document.getElementById('coupon-input');
+    if (!couponInput) return;
+    
+    const code = couponInput.value.trim().toUpperCase();
+    if (!code) {
+        alert("Pehle koi promo code enter karein.");
+        return;
+    }
+
+    // 1. Pehle backend database se coupons fetch karke check karna
+    try {
+        const response = await fetch(`${API_URL}/coupons`);
+        if (response.ok) {
+            const coupons = await response.json();
+            const foundCoupon = coupons.find(c => c.code.toUpperCase() === code);
+            if (foundCoupon) {
+                appliedDiscountPercent = foundCoupon.discountPercent;
+                alert(`🎉 Coupon applied successfully! ${appliedDiscountPercent}% discount added.`);
+                updateCartUI();
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn("Backend coupons fetch failed, checking local fallbacks:", err);
+    }
+
+    // 2. Local fallback coupons agar backend route active na ho ya code database mein na ho
+    const localFallbacks = {
+        "SYEDBADSHAH5": 5,
+        "TREASURER5": 5,
+        "SAVE5": 5,
+        "DISCOUNT10": 10
+    };
+
+    if (localFallbacks[code] !== undefined) {
+        appliedDiscountPercent = localFallbacks[code];
+        alert(`🎉 Coupon applied successfully! ${appliedDiscountPercent}% discount added.`);
+        updateCartUI();
+        return;
+    }
+
+    // 3. Agar kahin bhi match na ho
+    alert("Invalid promo code!");
+    appliedDiscountPercent = 0;
+    updateCartUI();
+}
+
 function calculateTotal() {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    if (appliedDiscountPercent > 0) {
+        const discountAmount = (subtotal * appliedDiscountPercent) / 100;
+        return Math.max(0, subtotal - discountAmount);
+    }
+    return subtotal;
 }
 
 function clearCart() {
     cart = [];
+    appliedDiscountPercent = 0;
     localStorage.removeItem('treasurer_cart');
     updateCartUI();
 }
@@ -135,14 +219,13 @@ function openCheckoutModal() {
         alert("Your cart is empty! Add items first.");
         return;
     }
-    toggleCartModal(false); // Cart modal band karo
+    toggleCartModal(false);
     const checkoutModal = document.getElementById('checkoutModal');
     if (checkoutModal) {
-        checkoutModal.style.display = 'flex'; // Delivery Form khole
+        checkoutModal.style.display = 'flex';
     }
 }
 
-// Redirect proceedCheckout to openCheckoutModal to prevent direct placement
 function proceedCheckout() {
     openCheckoutModal();
 }
@@ -181,12 +264,19 @@ async function handleCODCheckout(event) {
         const result = await response.json();
 
         if (response.ok) {
-            alert(`Thank you ${name}! Your order has been placed successfully via Cash on Delivery.`);
-            closeCheckoutModal();
-            clearCart();
-            if (document.getElementById('codAddressForm')) {
-                document.getElementById('codAddressForm').reset();
+            const modalContent = document.querySelector('.checkout-modal-content');
+            if (modalContent) {
+                modalContent.innerHTML = `
+                    <button class="checkout-close-btn" onclick="closeCheckoutModal(); location.reload();">&times;</button>
+                    <div style="text-align: center; padding: 2rem 0;">
+                        <h2 style="color: #d4af37; font-family: 'Cinzel', serif; margin-bottom: 1rem;">ORDER CONFIRMED</h2>
+                        <p style="font-size: 1.2rem; color: #fff; margin-bottom: 0.8rem; font-weight: bold;">Your order has been placed successfully!</p>
+                        <p style="color: #ccc; margin-bottom: 1.5rem; font-size: 0.95rem;">Thank you, <strong>${name}</strong>. Your Order ID is <strong style="color: #d4af37;">#${result.id || ''}</strong>.</p>
+                        <button onclick="closeCheckoutModal(); location.reload();" style="background: #d4af37; color: #000; border: none; padding: 0.8rem 2rem; font-weight: bold; cursor: pointer; border-radius: 4px; letter-spacing: 1px; transition: background 0.3s;">CONTINUE SHOPPING</button>
+                    </div>
+                `;
             }
+            clearCart();
         } else {
             alert(result.message || result.error || "Failed to place order. Please try again.");
         }
@@ -194,4 +284,4 @@ async function handleCODCheckout(event) {
         console.error("Order error:", error);
         alert("Server error. Please make sure backend server is running.");
     }
-}
+}s

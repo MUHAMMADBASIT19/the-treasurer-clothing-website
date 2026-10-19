@@ -478,7 +478,6 @@
             <button class="secure-btn" style="width: 100%; padding: 0.9rem;" onclick="openCheckoutModal()">PROCEED TO CHECKOUT</button>
         </div>
     </div>
-
     <!-- COD CHECKOUT ADDRESS FORM MODAL -->
     <div class="modal" id="checkoutModal">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
@@ -536,6 +535,7 @@
         let globalProducts = [];
         let userWishlistIds = [];
         let recentlyViewedIds = JSON.parse(localStorage.getItem('treasurer_recent')) || [];
+        let appliedDiscountPercent = 0; // Added for coupon discount tracking
 
         document.addEventListener('DOMContentLoaded', () => {
             renderNavbar();
@@ -774,7 +774,6 @@
             const isWished = userWishlistIds.includes(product.id) ? 'active' : '';
             const isSoldOut = product.isSoldOut === true || product.isSoldOut === 'true';
             
-            // Live Stock & Urgency Tag implementation
             const stockCount = product.stockCount !== undefined ? product.stockCount : 3;
             const urgencyHtml = (!isSoldOut && stockCount <= 4) 
                 ? `<div style="color: #ff4d4d; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.8rem; letter-spacing: 0.5px;"><i class="fas fa-fire" style="color: #ff4d4d;"></i> Only ${stockCount} left in stock - order soon!</div>` 
@@ -789,7 +788,6 @@
             card.className = 'product-card';
             card.setAttribute('data-id', product.id);
             
-            // Track Recently Viewed on click/interaction
             card.addEventListener('click', () => {
                 trackRecentlyViewed(product.id);
             });
@@ -857,7 +855,6 @@
             return card;
         }
 
-        // Recently Viewed Functions
         function trackRecentlyViewed(productId) {
             const numericId = parseInt(productId);
             if (!recentlyViewedIds.includes(numericId)) {
@@ -994,7 +991,67 @@
                 }
             }
 
-            if(totalPriceEl) totalPriceEl.innerText = `Rs. ${cart.reduce((s, i) => s + (i.price * i.quantity), 0)}`;
+            if(totalPriceEl) {
+                totalPriceEl.innerText = `Rs. ${calculateTotal().toFixed(0)}`;
+            }
+        }
+
+        // CALCULATE TOTAL WITH DISCOUNT SUPPORT
+        function calculateTotal() {
+            const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            if (appliedDiscountPercent > 0) {
+                const discountAmount = (subtotal * appliedDiscountPercent) / 100;
+                return Math.max(0, subtotal - discountAmount);
+            }
+            return subtotal;
+        }
+
+        // COUPON APPLY FUNCTION (Backend + Local Fallbacks)
+        async function applyCoupon() {
+            const couponInput = document.getElementById('coupon-input');
+            if (!couponInput) return;
+            
+            const code = couponInput.value.trim().toUpperCase();
+            if (!code) {
+                alert("Pehle koi promo code enter karein.");
+                return;
+            }
+
+            // 1. Check from backend database first
+            try {
+                const response = await fetch(`${API_URL}/coupons`);
+                if (response.ok) {
+                    const coupons = await response.json();
+                    const foundCoupon = coupons.find(c => c.code.toUpperCase() === code);
+                    if (foundCoupon) {
+                        appliedDiscountPercent = foundCoupon.discountPercent;
+                        alert(`🎉 Coupon applied successfully! ${appliedDiscountPercent}% discount added.`);
+                        updateCartCount();
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Backend coupons fetch failed, checking local fallbacks:", err);
+            }
+
+            // 2. Local fallback check
+            const localFallbacks = {
+                "SYEDBADSHAH5": 5,
+                "TREASURER5": 5,
+                "SAVE5": 5,
+                "DISCOUNT10": 10
+            };
+
+            if (localFallbacks[code] !== undefined) {
+                appliedDiscountPercent = localFallbacks[code];
+                alert(`🎉 Coupon applied successfully! ${appliedDiscountPercent}% discount added.`);
+                updateCartCount();
+                return;
+            }
+
+            alert("Invalid promo code!");
+            appliedDiscountPercent = 0;
+            updateCartCount();
         }
 
         function removeFromCart(index) {
@@ -1037,7 +1094,7 @@
                 address: address,
                 paymentMethod: 'COD',
                 items: JSON.stringify(cart),
-                totalAmount: cart.reduce((s, i) => s + (i.price * i.quantity), 0)
+                totalAmount: calculateTotal()
             };
 
             try {
@@ -1050,6 +1107,7 @@
                 if(res.ok) {
                     showToast('Order successfully placed!');
                     cart = [];
+                    appliedDiscountPercent = 0;
                     localStorage.removeItem('treasurer_cart');
                     updateCartCount();
                     closeCheckoutModal();
@@ -1094,7 +1152,7 @@
             }, 1000);
         }
     </script>
-    <!-- Baaki saara website ka content aur scripts -->
+    
     <!-- WhatsApp Quick Chat Widget -->
     <div id="whatsapp-widget" style="position: fixed; bottom: 25px; right: 25px; z-index: 9999; display: flex; align-items: center; cursor: pointer; background: #25d366; color: white; padding: 12px 18px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: sans-serif; text-decoration: none;" onclick="openWhatsApp()">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">

@@ -32,8 +32,8 @@ const upload = multer({ storage });
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'yourbrandemail@gmail.com',
-        pass: 'your-app-password'
+        user: 'basit.tyson19@gmail.com',
+        pass: 'wukklnbuzhvvoqkf'
     }
 });
 
@@ -83,8 +83,20 @@ const Wishlist = sequelize.define('Wishlist', {
     productId: { type: DataTypes.INTEGER, allowNull: false }
 });
 
-// Sync Database
-sequelize.sync({ alter: true }).then(() => console.log('Database synced successfully!'));
+// Sync Database & Auto-Seed Default Coupons
+sequelize.sync({ alter: true }).then(async () => {
+    console.log('Database synced successfully!');
+    try {
+        const count = await Coupon.count();
+        if (count === 0) {
+            await Coupon.create({ code: 'SYEDBADSHAH5', discountPercent: 5 });
+            await Coupon.create({ code: 'SAVE5', discountPercent: 5 });
+            console.log('Default coupons seeded successfully!');
+        }
+    } catch (e) {
+        console.error('Error seeding default coupons:', e);
+    }
+});
 
 // --- ROUTES ---
 
@@ -130,10 +142,6 @@ app.post('/api/register', async (req, res) => {
         transporter.sendMail(mailOptions, (err, info) => {
             if (err) console.log('Mail send error / fallback link:', verifyLink);
         });
-
-        console.log('--- VERIFICATION LINK (TESTING) ---');
-        console.log(verifyLink);
-        console.log('------------------------------------');
 
         res.status(201).json({ 
             message: 'Registration successful! Verification email sent.', 
@@ -186,7 +194,6 @@ app.post('/api/login', async (req, res) => {
         email = email ? email.trim().toLowerCase() : '';
         password = password ? password.trim() : '';
 
-        // Check if user is trying to login as Admin
         if (role === 'Admin' || role === 'admin') {
             if ((email === 'admin@treasurer.com' && password === 'admin123') || password === 'admin123') {
                 return res.json({ 
@@ -199,7 +206,6 @@ app.post('/api/login', async (req, res) => {
             }
         }
 
-        // If role is Customer (or anything else), check in User database
         const user = await User.findOne({ where: { email } });
         if (!user || user.password !== password) {
             return res.status(401).json({ message: 'Invalid email or password' });
@@ -323,7 +329,6 @@ app.get('/api/orders', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Failed to fetch orders' }); }
 });
 
-// TRACK ORDER ENDPOINT
 app.get('/api/orders/track/:id', async (req, res) => {
     try {
         const order = await Order.findByPk(req.params.id);
@@ -339,19 +344,75 @@ app.get('/api/orders/track/:id', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
     try {
         const { customerName, customerEmail, phone, city, address, paymentMethod, items, totalAmount, customer } = req.body;
+        
+        const finalName = customerName || (customer ? customer.name : 'N/A');
+        const finalEmail = customerEmail || (customer ? customer.email : 'guest@treasurer.com');
+        const finalPhone = phone || (customer ? customer.phone : 'N/A');
+        const finalCity = city || (customer ? customer.city : 'N/A');
+        const finalAddress = address || (customer ? customer.address : 'N/A');
+        const parsedItems = typeof items === 'string' ? items : JSON.stringify(items || []);
+
         const newOrder = await Order.create({
-            customerName: customerName || (customer ? customer.name : 'N/A'),
-            customerEmail: customerEmail || (customer ? customer.email : 'guest@treasurer.com'),
-            phone: phone || (customer ? customer.phone : 'N/A'),
-            city: city || (customer ? customer.city : 'N/A'),
-            address: address || (customer ? customer.address : 'N/A'),
+            customerName: finalName,
+            customerEmail: finalEmail,
+            phone: finalPhone,
+            city: finalCity,
+            address: finalAddress,
             paymentMethod: paymentMethod || 'COD',
-            items: typeof items === 'string' ? items : JSON.stringify(items || []),
+            items: parsedItems,
             totalAmount: parseFloat(totalAmount) || 0,
             status: 'Pending'
         });
+
+        let itemsListHtml = '';
+        try {
+            const parsedArray = JSON.parse(parsedItems);
+            itemsListHtml = parsedArray.map(i => `<li>${i.name} (x${i.quantity}) - Rs. ${i.price * i.quantity}</li>`).join('');
+        } catch (e) {
+            itemsListHtml = `<li>${parsedItems}</li>`;
+        }
+
+        const customerMailOptions = {
+            from: '"The Treasurer" <no-reply@treasurer.com>',
+            to: finalEmail,
+            subject: `Order Confirmation #${newOrder.id} - The Treasurer`,
+            html: `
+                <div style="background:#030304; color:#fff; padding:30px; font-family:sans-serif;">
+                    <h2 style="color:#d4af37; text-align:center;">THE TREASURER</h2>
+                    <p>Hi <strong>${finalName}</strong>,</p>
+                    <p>Thank you for shopping with us! Your order has been placed successfully.</p>
+                    <h3 style="color:#d4af37; border-bottom:1px solid #333; padding-bottom:5px;">Order Details (#${newOrder.id})</h3>
+                    <ul>${itemsListHtml}</ul>
+                    <p><strong>Total Amount:</strong> Rs. ${newOrder.totalAmount}</p>
+                    <p><strong>Shipping Address:</strong> ${finalAddress}, ${finalCity}</p>
+                </div>
+            `
+        };
+
+        const adminMailOptions = {
+            from: '"The Treasurer System" <no-reply@treasurer.com>',
+            to: 'admin@treasurer.com',
+            subject: `🚨 New Order Received #${newOrder.id} - Rs. ${newOrder.totalAmount}`,
+            html: `
+                <div style="background:#f4f4f4; color:#333; padding:20px; font-family:sans-serif;">
+                    <h2>New Order Placed!</h2>
+                    <p><strong>Customer:</strong> ${finalName} (${finalPhone})</p>
+                    <p><strong>City & Address:</strong> ${finalCity}, ${finalAddress}</p>
+                    <h3>Items:</h3>
+                    <ul>${itemsListHtml}</ul>
+                    <p><strong>Total:</strong> Rs. ${newOrder.totalAmount}</p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(customerMailOptions, (err) => {});
+        transporter.sendMail(adminMailOptions, (err) => {});
+
         res.status(201).json(newOrder);
-    } catch (err) { res.status(500).json({ error: 'Failed to place order' }); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).json({ error: 'Failed to place order' }); 
+    }
 });
 
 app.put('/api/orders/:id', async (req, res) => {
